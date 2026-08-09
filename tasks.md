@@ -82,20 +82,20 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 
 ## Phase 2 — Screening, evidence, explainability, and handoff
 
-- [ ] Capture ordered answers, consent context, resume file references, extraction status, evidence spans, confidence, and source references.
-- [ ] Implement deterministic rule evaluation with `pass`, `fail`, `review`, and `not_evaluated` results tied to the requirement version and criterion.
-- [ ] Implement unreadable-resume behavior: extraction is `unavailable`, missing experience remains unknown, and the application enters `review` or `human_handoff`.
+- [x] Capture ordered answers, consent context, resume file references, extraction status, evidence spans, confidence, and source references.
+- [x] Implement deterministic rule evaluation with `pass`, `fail`, `review`, and `not_evaluated` results tied to the requirement version and criterion.
+- [x] Implement unreadable-resume behavior: extraction is `unavailable`, missing experience remains unknown, and the application enters `review` or `human_handoff`.
 - [ ] Implement ambiguous-answer normalization to `review`, candidate correction, approved FAQ responses, unsupported-question handoff, and recruiter review work items.
-- [ ] Build `/recruiter/jobs/{jobId}/pipeline` with filters for review, handoff, missing evidence, failed work, and scheduled candidates.
-- [ ] Build `/recruiter/applications/{applicationId}` with evidence matrix, rule explanation, source, confidence, audit expansion, scorecard, messages, scheduling, and next human action.
-- [ ] Append audit events for candidate answers, extraction, evaluation, correction, override, handoff, and disposition.
-- [ ] Add tests proving no agent or worker can create a final hire/reject disposition.
+- [x] Build `/recruiter/jobs/{jobId}/pipeline` with initial status counts and candidate rows; filters remain outstanding.
+- [x] Build `/recruiter/applications/{applicationId}` API detail with evidence matrix, rule explanation, source, confidence, audit expansion, messages, scheduling, and next human action; UI remains outstanding.
+- [x] Append audit events for candidate answers, extraction, evaluation, correction, override, handoff, and disposition where those local actions exist.
+- [x] Add tests proving no agent or worker can create a final hire/reject disposition.
 
 **Demo gate:** A candidate submits a resume and answers; the recruiter sees each criterion’s evidence and explanation and can take over any ambiguous case.
 
 ## Phase 3 — Scheduling, messaging, and integration boundaries
 
-- [ ] Implement durable work items, correlation IDs, bounded safe retries, idempotency keys, provider-degraded state, and manual recovery tasks.
+- [x] Implement durable work-item records, correlation IDs, booking/message idempotency keys, provider-degraded state, and manual recovery tasks for the fixture path; bounded worker retries remain outstanding.
 - [x] Implement fixture calendar adapter interfaces for slot listing, reserve, release-by-cancellation, and callback reconciliation.
 - [x] Implement fixture slot selection, Chicago time-zone display, confirmation, consent check, provider result, and visible provider failure state; reminders and opt-out delivery remain outstanding.
 - [x] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
