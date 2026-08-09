@@ -8,9 +8,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .config import BackendConfig
 from .requirements import ImmutableVersionError, RequirementError, RequirementService
 from .retail_fixture import seed_retail_job
-from .storage import SQLiteStore
+from .store_factory import create_store
 
 
 class RequestError(ValueError):
@@ -46,10 +47,15 @@ def _version_payload(version: object) -> dict[str, object]:
     }
 
 
-def create_demo_server(db_path: str | Path, port: int = 0) -> ThreadingHTTPServer:
+def create_demo_server(
+    db_path: str | Path | None = None,
+    port: int = 0,
+    backend_config: BackendConfig | None = None,
+) -> ThreadingHTTPServer:
     """Create a seeded local server with no external provider dependencies."""
 
-    store = SQLiteStore(db_path)
+    config = backend_config or BackendConfig.from_environment()
+    store = create_store(config, db_path)
     service = RequirementService(store)
     seed_retail_job(service)
 

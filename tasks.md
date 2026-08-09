@@ -25,7 +25,8 @@
 - [x] Added a dependency-free local HTTP API with recruiter job listing, recruiter requirements, candidate preview, and health endpoints.
 - [x] Added requirement validation, draft criteria replacement, publish, version history, and precise JSON error responses.
 - [x] Added a design-tokenized candidate/recruiter static demo shell with mobile layout, visible focus, text-plus-state badges, and explicit loading/error states.
-- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, and the local API/UI surface: 7 tests passing.
+- [x] Added a server-side Supabase REST boundary, credential-free backend selection, `.env.example`, and an RLS-enabled migration for the future application/evidence/audit tables.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, and the local API/UI surface: 10 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
@@ -41,7 +42,7 @@
 1. Add candidate application capture, consent context, optional resume status, and recruiter pipeline records.
 2. Implement ordered answer evidence and deterministic rule evaluation before expanding into scheduling.
 3. Add human handoff, audit events, and recruiter application detail.
-4. Keep ATS, calendar, messaging, and deployment work behind deterministic fixtures until provider/client decisions are verified.
+4. Implement candidate intake, evidence, screening, and handoff against the storage boundary; keep ATS, calendar, messaging, and deployment work behind deterministic fixtures until provider/client decisions are verified.
 
 The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
 

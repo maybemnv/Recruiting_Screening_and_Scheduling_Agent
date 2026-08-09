@@ -1,9 +1,9 @@
 # Recruiting Screening and Scheduling Agent
 
-This checkout contains the fixture-first Phase 0/1 prototype from `PRD.md`: a
-local SQLite requirement store, immutable job requirement versions, the seeded
-`retail-job-v1` fixture, a dependency-free HTTP API, and a static candidate /
-recruiter workbench.
+This checkout contains the fixture-first recruiting prototype from `PRD.md`: a
+local SQLite test double, a Supabase/PostgreSQL migration target, immutable job
+requirement versions, the seeded `retail-job-v1` fixture, a dependency-free
+HTTP API, and a static candidate / recruiter workbench.
 
 ## Run locally
 
@@ -29,10 +29,12 @@ Requirement mutation endpoints are available for the local recruiter flow:
 - `GET /api/recruiter/jobs/{jobId}/requirements/history`
 
 The current provider mode is `fixture`: ATS, calendar, SMS, and email are not
-called. The SQLite store is a local replacement boundary for the PRD's future
-PostgreSQL/FastAPI implementation. The UI adapts the root design schema using
-the shared brand palette, type, spacing, visible focus, reduced motion, and
-explicit status/error states.
+called. Set `RECRUITING_STORE_BACKEND=supabase` after applying
+`supabase/migrations/001_recruiting_demo.sql` and supplying the server-only
+variables in `.env.example`; the browser must never receive the Supabase
+service-role key. SQLite remains the credential-free deterministic test mode.
+The UI adapts the root design schema using the shared brand palette, type,
+spacing, visible focus, reduced motion, and explicit status/error states.
 
 ## Test
 
