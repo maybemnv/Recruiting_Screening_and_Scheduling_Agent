@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .applications import ApplicationError, ApplicationService
 from .config import BackendConfig
 from .requirements import ImmutableVersionError, RequirementError, RequirementService
 from .retail_fixture import seed_retail_job
@@ -58,6 +59,7 @@ def create_demo_server(
     store = create_store(config, db_path)
     service = RequirementService(store)
     seed_retail_job(service)
+    applications = ApplicationService(store, service)
 
     class DemoHandler(BaseHTTPRequestHandler):
         _web_root = Path(__file__).parents[2] / "web"
@@ -136,6 +138,12 @@ def create_demo_server(
                 self._error(422, "INVALID_CRITERIA", str(error))
             elif isinstance(error, sqlite3.IntegrityError):
                 self._error(409, "CONFLICT", "The requested requirement version conflicts with existing state")
+            elif isinstance(error, PermissionError):
+                self._error(403, str(error), "A human recruiter is required for this action")
+            elif isinstance(error, ApplicationError):
+                code = str(error)
+                status = 409 if code == "HUMAN_REASON_REQUIRED" else 422
+                self._error(status, code, str(error))
             else:
                 self._error(400, "INVALID_REQUEST", str(error))
 
@@ -194,6 +202,19 @@ def create_demo_server(
                             "questions": preview["questions"],
                         },
                     )
+                    return
+
+                application_detail_prefix = "/api/recruiter/applications/"
+                if path.startswith(application_detail_prefix):
+                    application_id = path[len(application_detail_prefix) :]
+                    self._json(200, applications.detail(application_id))
+                    return
+
+                recruiter_prefix = "/api/recruiter/jobs/"
+                pipeline_suffix = "/pipeline"
+                if path.startswith(recruiter_prefix) and path.endswith(pipeline_suffix):
+                    job_id = path[len(recruiter_prefix) : -len(pipeline_suffix)]
+                    self._json(200, applications.pipeline(job_id))
                     return
 
                 history_suffix = "/requirements/history"
@@ -281,6 +302,36 @@ def create_demo_server(
         def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
             path = urlparse(self.path).path.rstrip("/") or "/"
             try:
+                candidate_application_suffix = "/applications"
+                candidate_prefix = "/api/apply/"
+                if path.startswith(candidate_prefix) and path.endswith(candidate_application_suffix):
+                    slug = path[len(candidate_prefix) : -len(candidate_application_suffix)]
+                    self._json(201, applications.create_application(slug, self._read_json()))
+                    return
+
+                application_prefix = "/api/applications/"
+                if path.startswith(application_prefix):
+                    parts = path[len(application_prefix) :].split("/")
+                    if len(parts) != 2:
+                        self._error(404, "NOT_FOUND", "Route not found")
+                        return
+                    application_id, action = parts
+                    payload = self._read_json() if self.headers.get("Content-Length") else {}
+                    if action == "screen":
+                        self._json(200, applications.screen(application_id, payload.get("idempotencyKey")))
+                        return
+                    if action == "handoff":
+                        reason = payload.get("reason")
+                        if not isinstance(reason, str):
+                            raise ApplicationError("handoff reason is required")
+                        self._json(200, applications.handoff(application_id, reason))
+                        return
+                    if action == "disposition":
+                        self._json(200, applications.disposition(application_id, payload))
+                        return
+                    self._error(404, "NOT_FOUND", "Route not found")
+                    return
+
                 collection_validate = "/api/jobs/"
                 if path.startswith(collection_validate) and path.endswith(
                     "/requirement-versions/validate"

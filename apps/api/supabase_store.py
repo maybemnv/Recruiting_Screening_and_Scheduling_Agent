@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -147,7 +148,10 @@ class SupabaseStore:
             "PATCH",
             "requirement_versions",
             query={"id": f"eq.{version_id}"},
-            payload={"status": "published", "published_at": "now()"},
+            payload={
+                "status": "published",
+                "published_at": datetime.now(timezone.utc).isoformat(),
+            },
             prefer="return=minimal",
         )
 
@@ -169,4 +173,226 @@ class SupabaseStore:
             "GET",
             "requirement_versions",
             query={"job_id": f"eq.{job_id}", "order": "version.desc"},
+        )
+
+    def insert_application(
+        self,
+        application_id: str,
+        job_id: str,
+        requirement_version_id: str,
+        contact: dict[str, Any],
+        consent: dict[str, str],
+        status: str,
+        resume_status: str,
+        resume_file_id: str | None,
+    ) -> None:
+        self._request(
+            "POST",
+            "applications",
+            payload={
+                "id": application_id,
+                "job_id": job_id,
+                "requirement_version_id": requirement_version_id,
+                "contact": contact,
+                "status": status,
+                "consent": consent,
+                "resume_status": resume_status,
+                "resume_file_id": resume_file_id,
+            },
+            prefer="return=minimal",
+        )
+
+    def get_application(self, application_id: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET", "applications", query={"id": f"eq.{application_id}", "limit": "1"}
+        )
+        return rows[0] if rows else None
+
+    def list_applications(self, job_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "applications",
+            query={"job_id": f"eq.{job_id}", "order": "created_at.asc,id.asc"},
+        )
+
+    def update_application(
+        self,
+        application_id: str,
+        *,
+        status: str | None = None,
+        disposition: str | None = None,
+        disposition_reason: str | None = None,
+        dispositioned_by: str | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {}
+        for key, value in (
+            ("status", status),
+            ("disposition", disposition),
+            ("disposition_reason", disposition_reason),
+            ("dispositioned_by", dispositioned_by),
+        ):
+            if value is not None:
+                payload[key] = value
+        payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+        self._request(
+            "PATCH",
+            "applications",
+            query={"id": f"eq.{application_id}"},
+            payload=payload,
+            prefer="return=minimal",
+        )
+
+    def insert_evidence(
+        self,
+        evidence_id: str,
+        application_id: str,
+        criterion_id: str | None,
+        source: str,
+        value: Any,
+        source_reference: dict[str, Any],
+        confidence: float | None,
+        extraction_status: str,
+    ) -> None:
+        self._request(
+            "POST",
+            "evidence",
+            payload={
+                "id": evidence_id,
+                "application_id": application_id,
+                "criterion_id": criterion_id,
+                "source": source,
+                "value": value,
+                "source_reference": source_reference,
+                "confidence": confidence,
+                "extraction_status": extraction_status,
+            },
+            prefer="return=minimal",
+        )
+
+    def list_evidence(self, application_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "evidence",
+            query={
+                "application_id": f"eq.{application_id}",
+                "order": "created_at.asc,id.asc",
+            },
+        )
+
+    def insert_evaluation(
+        self,
+        evaluation_id: str,
+        application_id: str,
+        requirement_version_id: str,
+        criterion_id: str,
+        result: str,
+        evidence_ids: list[str],
+        rule_expression: str,
+        explanation: str,
+        evaluator: str,
+    ) -> None:
+        self._request(
+            "POST",
+            "evaluations",
+            payload={
+                "id": evaluation_id,
+                "application_id": application_id,
+                "requirement_version_id": requirement_version_id,
+                "criterion_id": criterion_id,
+                "result": result,
+                "evidence_ids": evidence_ids,
+                "rule_expression": rule_expression,
+                "explanation": explanation,
+                "evaluator": evaluator,
+            },
+            prefer="return=minimal",
+        )
+
+    def list_evaluations(self, application_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "evaluations",
+            query={"application_id": f"eq.{application_id}", "order": "evaluated_at.asc,id.asc"},
+        )
+
+    def insert_work_item(
+        self,
+        work_item_id: str,
+        application_id: str,
+        kind: str,
+        idempotency_key: str,
+        reason: str,
+    ) -> None:
+        existing = self._request(
+            "GET",
+            "work_items",
+            query={"idempotency_key": f"eq.{idempotency_key}", "limit": "1"},
+        )
+        if existing:
+            return
+        self._request(
+            "POST",
+            "work_items",
+            payload={
+                "id": work_item_id,
+                "application_id": application_id,
+                "kind": kind,
+                "idempotency_key": idempotency_key,
+                "reason": reason,
+            },
+            prefer="return=minimal",
+        )
+
+    def list_work_items(self, application_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "work_items",
+            query={
+                "application_id": f"eq.{application_id}",
+                "order": "created_at.asc,id.asc",
+            },
+        )
+
+    def insert_audit_event(
+        self,
+        event_id: str,
+        actor_type: str,
+        actor_id: str | None,
+        action: str,
+        entity_type: str,
+        entity_id: str,
+        before_state: Any,
+        after_state: Any,
+        reason: str | None,
+        correlation_id: str,
+        source_version: str,
+    ) -> None:
+        self._request(
+            "POST",
+            "audit_events",
+            payload={
+                "id": event_id,
+                "actor_type": actor_type,
+                "actor_id": actor_id,
+                "action": action,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "before": before_state,
+                "after": after_state,
+                "reason": reason,
+                "correlation_id": correlation_id,
+                "source_version": source_version,
+            },
+            prefer="return=minimal",
+        )
+
+    def list_audit_events(self, entity_type: str, entity_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "audit_events",
+            query={
+                "entity_type": f"eq.{entity_type}",
+                "entity_id": f"eq.{entity_id}",
+                "order": "occurred_at.asc,id.asc",
+            },
         )

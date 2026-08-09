@@ -26,23 +26,24 @@
 - [x] Added requirement validation, draft criteria replacement, publish, version history, and precise JSON error responses.
 - [x] Added a design-tokenized candidate/recruiter static demo shell with mobile layout, visible focus, text-plus-state badges, and explicit loading/error states.
 - [x] Added a server-side Supabase REST boundary, credential-free backend selection, `.env.example`, and an RLS-enabled migration for the future application/evidence/audit tables.
-- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, and the local API/UI surface: 10 tests passing.
+- [x] Added fixture-first candidate application intake, consent/resume state, version-linked deterministic screening, evidence/evaluation records, review/handoff work items, recruiter detail/pipeline reads, and human-reason disposition controls.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, and the local API/UI surface: 17 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
 
 - [x] Added a small candidate/recruiter fixture demo shell with the shared root design schema, preview, and version-state interactions.
-- [ ] Full candidate application and recruiter operations UI surfaces remain outstanding; the shell is limited to requirement preview/versioning and does not capture applications or screening work.
+- [ ] Full candidate application and recruiter operations UI surfaces remain outstanding; the current shell does not yet render the application evidence/pipeline workflows.
 - [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
-- [ ] The Phase 1 API does not yet capture candidate applications; requirement draft/publish/validation mutations are now available locally.
-- [ ] Candidate answers, consent, resume upload, screening evaluation, handoff, audit events, PostgreSQL, workers, and provider adapters remain outstanding.
+- [x] The local Phase 1/2 API captures candidate applications and exposes screening, evidence, pipeline, handoff, and disposition behavior against SQLite.
+- [ ] Durable Supabase application writes, authenticated workspace access, workers, scheduling, messaging, ATS/calendar adapters, and full audit/analytics UI remain outstanding.
 
 ### Next work queue
 
-1. Add candidate application capture, consent context, optional resume status, and recruiter pipeline records.
-2. Implement ordered answer evidence and deterministic rule evaluation before expanding into scheduling.
-3. Add human handoff, audit events, and recruiter application detail.
-4. Implement candidate intake, evidence, screening, and handoff against the storage boundary; keep ATS, calendar, messaging, and deployment work behind deterministic fixtures until provider/client decisions are verified.
+1. Add candidate application/evidence repository parity to the Supabase boundary and verify RLS/auth ownership.
+2. Add the application evidence matrix, recruiter pipeline filters, and candidate saved-state UI.
+3. Implement interview slot availability, reserve/release, replacement-first rescheduling, and reminder work items.
+4. Add deployment, runbook, acceptance, and provider capability documentation without adding client secrets.
 
 The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
 

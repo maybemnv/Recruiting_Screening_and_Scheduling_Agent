@@ -18,6 +18,10 @@ Then open:
 - `http://127.0.0.1:8000/api/recruiter/jobs`
 - `http://127.0.0.1:8000/api/apply/retail-operations`
 - `http://127.0.0.1:8000/api/recruiter/jobs/retail-job/requirements`
+- `POST /api/apply/{jobSlug}/applications`
+- `POST /api/applications/{applicationId}/screen`
+- `GET /api/recruiter/applications/{applicationId}`
+- `GET /api/recruiter/jobs/{jobId}/pipeline`
 
 Requirement mutation endpoints are available for the local recruiter flow:
 
@@ -35,6 +39,11 @@ variables in `.env.example`; the browser must never receive the Supabase
 service-role key. SQLite remains the credential-free deterministic test mode.
 The UI adapts the root design schema using the shared brand palette, type,
 spacing, visible focus, reduced motion, and explicit status/error states.
+
+The current application/screening slice is deterministic and SQLite-backed. It
+records candidate evidence, criterion evaluations, review/handoff work, and
+human disposition reasons. Supabase application persistence and authenticated
+workspace access are the next integration boundary.
 
 ## Test
 
