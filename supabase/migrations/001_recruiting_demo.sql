@@ -102,11 +102,55 @@ create table if not exists public.audit_events (
     source_version text not null
 );
 
+create table if not exists public.interviews (
+    id text primary key,
+    application_id text not null references public.applications(id),
+    interview_type_id text not null,
+    slot_id text not null,
+    calendar_provider text not null,
+    external_event_id text,
+    start_at timestamptz not null,
+    end_at timestamptz not null,
+    time_zone text not null,
+    status text not null check (status in ('held', 'confirmed', 'reschedule_requested', 'cancelled', 'completed')),
+    booking_key text not null unique,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create table if not exists public.messages (
+    id text primary key,
+    application_id text not null references public.applications(id),
+    interview_id text references public.interviews(id),
+    channel text not null check (channel in ('sms', 'email')),
+    template_version text not null,
+    recipient_reference text not null,
+    consent_state text not null,
+    provider_result text not null,
+    status text not null,
+    idempotency_key text not null unique,
+    attempts integer not null default 0,
+    last_error_code text,
+    created_at timestamptz not null default now()
+);
+
+create table if not exists public.provider_events (
+    id text primary key,
+    provider_event_id text not null unique,
+    booking_key text,
+    event_type text not null,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 create index if not exists idx_applications_job_status on public.applications(job_id, status);
 create index if not exists idx_evidence_application on public.evidence(application_id, created_at);
 create index if not exists idx_evaluations_application on public.evaluations(application_id, criterion_id);
 create index if not exists idx_work_items_status on public.work_items(status, kind);
 create index if not exists idx_audit_entity on public.audit_events(entity_type, entity_id, occurred_at);
+create index if not exists idx_interviews_application on public.interviews(application_id, status);
+create index if not exists idx_messages_application on public.messages(application_id, created_at);
+create index if not exists idx_provider_events_booking on public.provider_events(booking_key);
 
 -- No anon/authenticated policies are intentionally created here.  The demo
 -- API uses the server-side service role, while browser access remains through
@@ -119,3 +163,6 @@ alter table public.evidence enable row level security;
 alter table public.evaluations enable row level security;
 alter table public.work_items enable row level security;
 alter table public.audit_events enable row level security;
+alter table public.interviews enable row level security;
+alter table public.messages enable row level security;
+alter table public.provider_events enable row level security;

@@ -322,6 +322,9 @@ class SupabaseStore:
         kind: str,
         idempotency_key: str,
         reason: str,
+        *,
+        status: str = "queued",
+        last_error_code: str | None = None,
     ) -> None:
         existing = self._request(
             "GET",
@@ -339,6 +342,8 @@ class SupabaseStore:
                 "kind": kind,
                 "idempotency_key": idempotency_key,
                 "reason": reason,
+                "status": status,
+                "last_error_code": last_error_code,
             },
             prefer="return=minimal",
         )
@@ -351,6 +356,30 @@ class SupabaseStore:
                 "application_id": f"eq.{application_id}",
                 "order": "created_at.asc,id.asc",
             },
+        )
+
+    def update_work_item(
+        self,
+        idempotency_key: str,
+        *,
+        status: str,
+        last_error_code: str | None = None,
+        attempts: int | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "status": status,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if last_error_code is not None:
+            payload["last_error_code"] = last_error_code
+        if attempts is not None:
+            payload["attempts"] = attempts
+        self._request(
+            "PATCH",
+            "work_items",
+            query={"idempotency_key": f"eq.{idempotency_key}"},
+            payload=payload,
+            prefer="return=minimal",
         )
 
     def insert_audit_event(
@@ -396,3 +425,155 @@ class SupabaseStore:
                 "order": "occurred_at.asc,id.asc",
             },
         )
+
+    def insert_interview(
+        self,
+        interview_id: str,
+        application_id: str,
+        interview_type_id: str,
+        slot_id: str,
+        calendar_provider: str,
+        external_event_id: str,
+        start_at: str,
+        end_at: str,
+        time_zone: str,
+        status: str,
+        booking_key: str,
+    ) -> None:
+        self._request(
+            "POST",
+            "interviews",
+            payload={
+                "id": interview_id,
+                "application_id": application_id,
+                "interview_type_id": interview_type_id,
+                "slot_id": slot_id,
+                "calendar_provider": calendar_provider,
+                "external_event_id": external_event_id,
+                "start_at": start_at,
+                "end_at": end_at,
+                "time_zone": time_zone,
+                "status": status,
+                "booking_key": booking_key,
+            },
+            prefer="return=minimal",
+        )
+
+    def get_interview_by_booking_key(self, booking_key: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET", "interviews", query={"booking_key": f"eq.{booking_key}", "limit": "1"}
+        )
+        return rows[0] if rows else None
+
+    def get_active_interview(self, application_id: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET",
+            "interviews",
+            query={
+                "application_id": f"eq.{application_id}",
+                "status": "in.(held,confirmed,reschedule_requested)",
+                "order": "created_at.desc,id.desc",
+                "limit": "1",
+            },
+        )
+        return rows[0] if rows else None
+
+    def get_interview_by_external_id(self, external_event_id: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET",
+            "interviews",
+            query={"external_event_id": f"eq.{external_event_id}", "limit": "1"},
+        )
+        return rows[0] if rows else None
+
+    def list_interviews(self, application_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "interviews",
+            query={"application_id": f"eq.{application_id}", "order": "created_at.asc,id.asc"},
+        )
+
+    def update_interview(self, interview_id: str, *, status: str) -> None:
+        self._request(
+            "PATCH",
+            "interviews",
+            query={"id": f"eq.{interview_id}"},
+            payload={"status": status, "updated_at": datetime.now(timezone.utc).isoformat()},
+            prefer="return=minimal",
+        )
+
+    def insert_message(
+        self,
+        message_id: str,
+        application_id: str,
+        interview_id: str,
+        channel: str,
+        template_version: str,
+        recipient_reference: str,
+        consent_state: str,
+        provider_result: str,
+        status: str,
+        idempotency_key: str,
+        attempts: int = 0,
+        last_error_code: str | None = None,
+    ) -> None:
+        existing = self._request(
+            "GET", "messages", query={"idempotency_key": f"eq.{idempotency_key}", "limit": "1"}
+        )
+        if existing:
+            return
+        self._request(
+            "POST",
+            "messages",
+            payload={
+                "id": message_id,
+                "application_id": application_id,
+                "interview_id": interview_id,
+                "channel": channel,
+                "template_version": template_version,
+                "recipient_reference": recipient_reference,
+                "consent_state": consent_state,
+                "provider_result": provider_result,
+                "status": status,
+                "idempotency_key": idempotency_key,
+                "attempts": attempts,
+                "last_error_code": last_error_code,
+            },
+            prefer="return=minimal",
+        )
+
+    def list_messages(self, application_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "messages",
+            query={"application_id": f"eq.{application_id}", "order": "created_at.asc,id.asc"},
+        )
+
+    def insert_provider_event(
+        self,
+        event_id: str,
+        provider_event_id: str,
+        booking_key: str | None,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> bool:
+        existing = self._request(
+            "GET",
+            "provider_events",
+            query={"provider_event_id": f"eq.{provider_event_id}", "limit": "1"},
+        )
+        if existing:
+            return False
+        self._request(
+            "POST",
+            "provider_events",
+            payload={
+                "id": event_id,
+                "provider_event_id": provider_event_id,
+                "booking_key": booking_key,
+                "event_type": event_type,
+                "payload": payload,
+            },
+            prefer="return=minimal",
+        )
+        return True

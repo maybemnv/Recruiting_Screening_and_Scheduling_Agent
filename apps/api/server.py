@@ -12,6 +12,7 @@ from .applications import ApplicationError, ApplicationService
 from .config import BackendConfig
 from .requirements import ImmutableVersionError, RequirementError, RequirementService
 from .retail_fixture import seed_retail_job
+from .scheduling import SchedulingService
 from .store_factory import create_store
 
 
@@ -60,6 +61,7 @@ def create_demo_server(
     service = RequirementService(store)
     seed_retail_job(service)
     applications = ApplicationService(store, service)
+    scheduling = SchedulingService(store, applications, calendar_mode=config.calendar_mode)
 
     class DemoHandler(BaseHTTPRequestHandler):
         _web_root = Path(__file__).parents[2] / "web"
@@ -203,7 +205,19 @@ def create_demo_server(
                 application_detail_prefix = "/api/recruiter/applications/"
                 if path.startswith(application_detail_prefix):
                     application_id = path[len(application_detail_prefix) :]
-                    self._json(200, applications.application_detail(application_id))
+                    self._json(
+                        200,
+                        {
+                            **applications.application_detail(application_id),
+                            **scheduling.detail(application_id),
+                        },
+                    )
+                    return
+
+                application_slots_prefix = "/api/applications/"
+                if path.startswith(application_slots_prefix) and path.endswith("/slots"):
+                    application_id = path[len(application_slots_prefix) : -len("/slots")]
+                    self._json(200, scheduling.available_slots(application_id))
                     return
 
                 recruiter_prefix = "/api/recruiter/jobs/"
@@ -321,6 +335,12 @@ def create_demo_server(
                             ),
                         )
                         return
+                    if action == "interviews":
+                        self._json(200, scheduling.book(application_id, payload))
+                        return
+                    if action == "reschedule":
+                        self._json(200, scheduling.reschedule(application_id, payload))
+                        return
                     if action == "handoff":
                         reason = payload.get("reason")
                         if not isinstance(reason, str):
@@ -342,6 +362,10 @@ def create_demo_server(
                         )
                         return
                     self._error(404, "NOT_FOUND", "Route not found")
+                    return
+
+                if path == "/api/integrations/calendar/callback":
+                    self._json(200, scheduling.reconcile_callback(self._read_json()))
                     return
 
                 collection_validate = "/api/jobs/"

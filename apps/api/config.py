@@ -18,6 +18,8 @@ class BackendConfig:
     sqlite_path: str = ".local/demo.sqlite3"
     supabase_url: str | None = None
     supabase_service_role_key: str | None = field(default=None, repr=False)
+    calendar_mode: str = "fixture"
+    messaging_mode: str = "fixture"
 
     @classmethod
     def from_environment(cls) -> "BackendConfig":
@@ -43,11 +45,20 @@ class BackendConfig:
                     "Supabase backend requires: " + ", ".join(missing)
                 )
 
+        calendar_mode = os.getenv("RECRUITING_DEMO_CALENDAR_MODE", "fixture").strip().lower()
+        messaging_mode = os.getenv("RECRUITING_DEMO_MESSAGING_MODE", "fixture").strip().lower()
+        if calendar_mode not in {"fixture", "outage"}:
+            raise ConfigurationError("RECRUITING_DEMO_CALENDAR_MODE must be 'fixture' or 'outage'")
+        if messaging_mode not in {"fixture", "outage"}:
+            raise ConfigurationError("RECRUITING_DEMO_MESSAGING_MODE must be 'fixture' or 'outage'")
+
         return cls(
             backend=backend,
             sqlite_path=os.getenv("RECRUITING_SQLITE_PATH", ".local/demo.sqlite3"),
             supabase_url=url,
             supabase_service_role_key=service_key,
+            calendar_mode=calendar_mode,
+            messaging_mode=messaging_mode,
         )
 
     @property
@@ -62,5 +73,7 @@ class BackendConfig:
             f"backend={self.backend!r}, "
             f"sqlite_path={self.sqlite_path!r}, "
             f"supabase_url={self.supabase_url!r}, "
+            f"calendar_mode={self.calendar_mode!r}, "
+            f"messaging_mode={self.messaging_mode!r}, "
             "supabase_service_role_key='[REDACTED]')"
         )

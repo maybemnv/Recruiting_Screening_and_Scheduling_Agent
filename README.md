@@ -20,6 +20,10 @@ Then open:
 - `http://127.0.0.1:8000/api/recruiter/jobs/retail-job/requirements`
 - `POST /api/apply/{jobSlug}/applications`
 - `POST /api/applications/{applicationId}/screen`
+- `GET /api/applications/{applicationId}/slots`
+- `POST /api/applications/{applicationId}/interviews`
+- `POST /api/applications/{applicationId}/reschedule`
+- `POST /api/integrations/calendar/callback`
 - `GET /api/recruiter/applications/{applicationId}`
 - `GET /api/recruiter/jobs/{jobId}/pipeline`
 
@@ -40,10 +44,12 @@ service-role key. SQLite remains the credential-free deterministic test mode.
 The UI adapts the root design schema using the shared brand palette, type,
 spacing, visible focus, reduced motion, and explicit status/error states.
 
-The current application/screening slice is deterministic and SQLite-backed. It
-records candidate evidence, criterion evaluations, review/handoff work, and
-human disposition reasons. Supabase application persistence and authenticated
-workspace access are the next integration boundary.
+The current application, screening, and scheduling slice is deterministic and
+SQLite-backed. It records candidate evidence, criterion evaluations,
+review/handoff work, human disposition reasons, interview state, confirmation
+messages, and provider callbacks. Supabase persistence and authenticated
+workspace access are the next integration boundary; no live provider secrets
+are required for the fixture demo.
 
 ## Test
 

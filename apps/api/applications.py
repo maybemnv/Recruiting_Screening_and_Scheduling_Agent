@@ -26,6 +26,7 @@ class ApplicationService:
     def __init__(self, store: Any, requirements: RequirementService):
         self.store = store
         self.requirements = requirements
+        self.scheduler: Any | None = None
 
     def create_application(self, job_slug: str, payload: Mapping[str, Any]) -> dict[str, Any]:
         job = self.requirements.get_job_by_slug(job_slug)
@@ -294,7 +295,7 @@ class ApplicationService:
 
     def application_detail(self, application_id: str) -> dict[str, Any]:
         application = self._get_application(application_id)
-        return {
+        detail = {
             **self._serialize_application(application),
             "evidence": [self._evidence_mapping(item) for item in self.store.list_evidence(application_id)],
             "evaluations": [self._evaluation_mapping(item) for item in self.store.list_evaluations(application_id)],
@@ -304,6 +305,11 @@ class ApplicationService:
                 for item in self.store.list_audit_events("application", application_id)
             ],
         }
+        if self.scheduler is not None:
+            detail.update(self.scheduler.detail(application_id))
+        else:
+            detail.update({"interviews": [], "messages": []})
+        return detail
 
     def pipeline(self, job_id: str) -> dict[str, Any]:
         self.requirements.get_job(job_id)

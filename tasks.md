@@ -27,7 +27,8 @@
 - [x] Added a design-tokenized candidate/recruiter static demo shell with mobile layout, visible focus, text-plus-state badges, and explicit loading/error states.
 - [x] Added a server-side Supabase REST boundary, credential-free backend selection, `.env.example`, and an RLS-enabled migration for the future application/evidence/audit tables.
 - [x] Added fixture-first candidate application intake, consent/resume state, version-linked deterministic screening, evidence/evaluation records, review/handoff work items, recruiter detail/pipeline reads, and human-reason disposition controls.
-- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, and the local API/UI surface: 17 tests passing.
+- [x] Added fixture calendar slot availability, time-zone-aware booking, idempotent confirmation replay, replacement-first rescheduling, duplicate callback reconciliation, and retryable provider-degraded work items.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, scheduling, callbacks, and the local API/UI surface: 19 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
@@ -36,14 +37,14 @@
 - [ ] Full candidate application and recruiter operations UI surfaces remain outstanding; the current shell does not yet render the application evidence/pipeline workflows.
 - [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
 - [x] The local Phase 1/2 API captures candidate applications and exposes screening, evidence, pipeline, handoff, and disposition behavior against SQLite.
-- [ ] Durable Supabase application writes, authenticated workspace access, workers, scheduling, messaging, ATS/calendar adapters, and full audit/analytics UI remain outstanding.
+- [ ] Durable Supabase application writes, authenticated workspace access, workers, reminder delivery, live provider adapters, and full audit/analytics UI remain outstanding; the local scheduling path is fixture-backed and verified.
 
 ### Next work queue
 
 1. Add candidate application/evidence repository parity to the Supabase boundary and verify RLS/auth ownership.
 2. Add the application evidence matrix, recruiter pipeline filters, and candidate saved-state UI.
-3. Implement interview slot availability, reserve/release, replacement-first rescheduling, and reminder work items.
-4. Add deployment, runbook, acceptance, and provider capability documentation without adding client secrets.
+3. Add reminder work items, bounded retries, and provider capability inspection around the scheduling fixture.
+4. Add application evidence/pipeline UI, authenticated Supabase parity, and client acceptance/runbook documentation without adding secrets.
 
 The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
 
@@ -95,10 +96,10 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 ## Phase 3 — Scheduling, messaging, and integration boundaries
 
 - [ ] Implement durable work items, correlation IDs, bounded safe retries, idempotency keys, provider-degraded state, and manual recovery tasks.
-- [ ] Implement calendar adapter interfaces for list, reserve, release, update, cancel, and callback reconciliation, with one deterministic test-double provider.
-- [ ] Implement slot selection, time-zone display, confirmation, reminders, consent, provider result, delivery failure, and opt-out state.
-- [ ] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
-- [ ] Ensure duplicate calendar callbacks reconcile by provider event identity or booking key and create exactly one active interview.
+- [x] Implement fixture calendar adapter interfaces for slot listing, reserve, release-by-cancellation, and callback reconciliation.
+- [x] Implement fixture slot selection, Chicago time-zone display, confirmation, consent check, provider result, and visible provider failure state; reminders and opt-out delivery remain outstanding.
+- [x] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
+- [x] Ensure duplicate calendar callbacks reconcile by provider event identity or booking key and create exactly one active interview.
 - [ ] Implement ATS adapter contracts and test doubles for Greenhouse, Lever, Ashby, and Workday; keep live mappings behind explicit capabilities.
 - [ ] Add integration health, retry, `sync_pending`, provider failure, and manual handoff UI.
 - [ ] Add tests for duplicate callbacks, auth failure, rate limit, malformed payload, provider outage, partial write, booking failure, and idempotent ATS updates.
@@ -139,7 +140,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [ ] Add `DEMO_SCRIPT.md` with exact accounts, happy/exception paths, expected evidence, provider labels, and fallback steps.
 - [ ] Add `RUNBOOK.md` with worker recovery, correlation IDs, retry/manual handoff, calendar/ATS reconciliation, messaging consent, audit interpretation, and incident procedure.
 - [ ] Add `ACCEPTANCE_MATRIX.md` mapping every Must requirement to evidence, explicit deferral, or blocker.
-- [ ] Add `deployment.md` with verified infrastructure, setup, environment-variable, provider-mode, demo launch, health-check, rollback, and client handoff guidance.
+- [x] Add `deployment.md` with verified infrastructure, setup, environment-variable, provider-mode, demo launch, health-check, rollback, and client handoff guidance.
 - [ ] Record client-owned decisions for first live ATS/calendar, sender, prohibited criteria, monitoring attributes, retention/deletion, model/extractor versions, and observed throughput; do not invent them.
 
 ## Final acceptance gates

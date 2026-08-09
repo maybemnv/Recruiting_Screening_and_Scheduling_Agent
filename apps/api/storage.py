@@ -117,6 +117,47 @@ class SQLiteStore:
                 correlation_id TEXT NOT NULL,
                 source_version TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS interviews (
+                id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL REFERENCES applications(id),
+                interview_type_id TEXT NOT NULL,
+                slot_id TEXT NOT NULL,
+                calendar_provider TEXT NOT NULL,
+                external_event_id TEXT,
+                start_at TEXT NOT NULL,
+                end_at TEXT NOT NULL,
+                time_zone TEXT NOT NULL,
+                status TEXT NOT NULL,
+                booking_key TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL REFERENCES applications(id),
+                interview_id TEXT REFERENCES interviews(id),
+                channel TEXT NOT NULL,
+                template_version TEXT NOT NULL,
+                recipient_reference TEXT NOT NULL,
+                consent_state TEXT NOT NULL,
+                provider_result TEXT NOT NULL,
+                status TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error_code TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS provider_events (
+                id TEXT PRIMARY KEY,
+                provider_event_id TEXT NOT NULL UNIQUE,
+                booking_key TEXT,
+                event_type TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
         self.connection.commit()
@@ -395,12 +436,24 @@ class SQLiteStore:
         kind: str,
         idempotency_key: str,
         reason: str,
+        *,
+        status: str = "queued",
+        last_error_code: str | None = None,
     ) -> None:
         with self._lock:
             self.connection.execute(
                 "INSERT OR IGNORE INTO work_items "
-                "(id, application_id, kind, idempotency_key, reason) VALUES (?, ?, ?, ?, ?)",
-                (work_item_id, application_id, kind, idempotency_key, reason),
+                "(id, application_id, kind, idempotency_key, status, last_error_code, reason) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    work_item_id,
+                    application_id,
+                    kind,
+                    idempotency_key,
+                    status,
+                    last_error_code,
+                    reason,
+                ),
             )
             self.connection.commit()
 
@@ -412,6 +465,30 @@ class SQLiteStore:
                     (application_id,),
                 ).fetchall()
             )
+
+    def update_work_item(
+        self,
+        idempotency_key: str,
+        *,
+        status: str,
+        last_error_code: str | None = None,
+        attempts: int | None = None,
+    ) -> None:
+        assignments = ["status = ?", "updated_at = CURRENT_TIMESTAMP"]
+        values: list[Any] = [status]
+        if last_error_code is not None:
+            assignments.append("last_error_code = ?")
+            values.append(last_error_code)
+        if attempts is not None:
+            assignments.append("attempts = ?")
+            values.append(attempts)
+        values.append(idempotency_key)
+        with self._lock:
+            self.connection.execute(
+                f"UPDATE work_items SET {', '.join(assignments)} WHERE idempotency_key = ?",
+                values,
+            )
+            self.connection.commit()
 
     def insert_audit_event(
         self,
@@ -458,3 +535,148 @@ class SQLiteStore:
                     (entity_type, entity_id),
                 ).fetchall()
             )
+
+    def insert_interview(
+        self,
+        interview_id: str,
+        application_id: str,
+        interview_type_id: str,
+        slot_id: str,
+        calendar_provider: str,
+        external_event_id: str,
+        start_at: str,
+        end_at: str,
+        time_zone: str,
+        status: str,
+        booking_key: str,
+    ) -> None:
+        with self._lock:
+            self.connection.execute(
+                "INSERT INTO interviews "
+                "(id, application_id, interview_type_id, slot_id, calendar_provider, external_event_id, "
+                "start_at, end_at, time_zone, status, booking_key) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    interview_id,
+                    application_id,
+                    interview_type_id,
+                    slot_id,
+                    calendar_provider,
+                    external_event_id,
+                    start_at,
+                    end_at,
+                    time_zone,
+                    status,
+                    booking_key,
+                ),
+            )
+            self.connection.commit()
+
+    def get_interview_by_booking_key(self, booking_key: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self.connection.execute(
+                "SELECT * FROM interviews WHERE booking_key = ?", (booking_key,)
+            ).fetchone()
+
+    def get_active_interview(self, application_id: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self.connection.execute(
+                "SELECT * FROM interviews WHERE application_id = ? "
+                "AND status IN ('held', 'confirmed', 'reschedule_requested') "
+                "ORDER BY created_at DESC, id DESC LIMIT 1",
+                (application_id,),
+            ).fetchone()
+
+    def get_interview_by_external_id(self, external_event_id: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self.connection.execute(
+                "SELECT * FROM interviews WHERE external_event_id = ? LIMIT 1",
+                (external_event_id,),
+            ).fetchone()
+
+    def list_interviews(self, application_id: str) -> list[sqlite3.Row]:
+        with self._lock:
+            return list(
+                self.connection.execute(
+                    "SELECT * FROM interviews WHERE application_id = ? ORDER BY created_at, id",
+                    (application_id,),
+                ).fetchall()
+            )
+
+    def update_interview(self, interview_id: str, *, status: str) -> None:
+        with self._lock:
+            self.connection.execute(
+                "UPDATE interviews SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (status, interview_id),
+            )
+            self.connection.commit()
+
+    def insert_message(
+        self,
+        message_id: str,
+        application_id: str,
+        interview_id: str,
+        channel: str,
+        template_version: str,
+        recipient_reference: str,
+        consent_state: str,
+        provider_result: str,
+        status: str,
+        idempotency_key: str,
+        attempts: int = 0,
+        last_error_code: str | None = None,
+    ) -> None:
+        with self._lock:
+            self.connection.execute(
+                "INSERT OR IGNORE INTO messages "
+                "(id, application_id, interview_id, channel, template_version, recipient_reference, "
+                "consent_state, provider_result, status, idempotency_key, attempts, last_error_code) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    message_id,
+                    application_id,
+                    interview_id,
+                    channel,
+                    template_version,
+                    recipient_reference,
+                    consent_state,
+                    provider_result,
+                    status,
+                    idempotency_key,
+                    attempts,
+                    last_error_code,
+                ),
+            )
+            self.connection.commit()
+
+    def list_messages(self, application_id: str) -> list[sqlite3.Row]:
+        with self._lock:
+            return list(
+                self.connection.execute(
+                    "SELECT * FROM messages WHERE application_id = ? ORDER BY created_at, id",
+                    (application_id,),
+                ).fetchall()
+            )
+
+    def insert_provider_event(
+        self,
+        event_id: str,
+        provider_event_id: str,
+        booking_key: str | None,
+        event_type: str,
+        payload: dict[str, Any],
+    ) -> bool:
+        with self._lock:
+            cursor = self.connection.execute(
+                "INSERT OR IGNORE INTO provider_events "
+                "(id, provider_event_id, booking_key, event_type, payload) VALUES (?, ?, ?, ?, ?)",
+                (
+                    event_id,
+                    provider_event_id,
+                    booking_key,
+                    event_type,
+                    json.dumps(payload, sort_keys=True),
+                ),
+            )
+            self.connection.commit()
+            return cursor.rowcount == 1
