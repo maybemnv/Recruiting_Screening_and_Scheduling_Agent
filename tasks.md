@@ -34,7 +34,7 @@
 ### Not yet complete
 
 - [x] Added a small candidate/recruiter fixture demo shell with the shared root design schema, preview, and version-state interactions.
-- [ ] Full candidate application and recruiter operations UI surfaces remain outstanding; the current shell does not yet render the application evidence/pipeline workflows.
+- [ ] Full production candidate/recruiter application surfaces remain outstanding, but the fixture demo shell now submits applications, shows screening states, books/reschedules slots, and opens recruiter evidence/pipeline detail.
 - [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
 - [x] The local Phase 1/2 API captures candidate applications and exposes screening, evidence, pipeline, handoff, and disposition behavior against SQLite.
 - [ ] Durable Supabase application writes, authenticated workspace access, workers, reminder delivery, live provider adapters, and full audit/analytics UI remain outstanding; the local scheduling path is fixture-backed and verified.
@@ -74,8 +74,8 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [x] Implement local job draft creation, criterion validation, candidate-facing wording preview, publication, and immutable requirement versions.
 - [x] Seed `retail-job-v1` with work authorization, availability, location, experience, and interview-slot criteria.
 - [x] Reject invalid or unsupported criteria at local draft, replacement, validation, and publish boundaries with safe JSON validation reasons; policy blocklists and audit records remain outstanding.
-- [ ] Build `/apply/{jobSlug}` with contact capture, ordered questions, consent context, optional resume upload, generated-question preview, saved state, error state, human-help path, and mobile layout.
-- [ ] Build `/recruiter/jobs` and `/recruiter/jobs/{jobId}/requirements` with job state, criteria, version history, preview, publish, and integration status.
+- [x] Build the fixture `/apply/{jobSlug}` shell with contact capture, ordered questions, consent context, resume status, screening preview, saved/error state, human-help path, slot selection, rescheduling, and mobile layout; production routing/auth remains outstanding.
+- [x] Build the fixture recruiter requirements/pipeline/evidence shell with job state, criteria, published version, candidate rows, and application detail; publish controls, filters, and authenticated workspace remain outstanding.
 - [x] Add tests proving candidate wording matches the published version and later edits create a new version without mutating old results.
 
 **Demo gate:** A recruiter publishes the retail job, the candidate opens the flow at 320px width, and version 1 is immutable.
@@ -86,8 +86,8 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [x] Implement deterministic rule evaluation with `pass`, `fail`, `review`, and `not_evaluated` results tied to the requirement version and criterion.
 - [x] Implement unreadable-resume behavior: extraction is `unavailable`, missing experience remains unknown, and the application enters `review` or `human_handoff`.
 - [ ] Implement ambiguous-answer normalization to `review`, candidate correction, approved FAQ responses, unsupported-question handoff, and recruiter review work items.
-- [x] Build `/recruiter/jobs/{jobId}/pipeline` with initial status counts and candidate rows; filters remain outstanding.
-- [x] Build `/recruiter/applications/{applicationId}` API detail with evidence matrix, rule explanation, source, confidence, audit expansion, messages, scheduling, and next human action; UI remains outstanding.
+- [x] Build `/recruiter/jobs/{jobId}/pipeline` with initial status counts, candidate rows, and evidence open action; filters remain outstanding.
+- [x] Build `/recruiter/applications/{applicationId}` detail with evidence matrix, rule explanation, source, confidence, audit expansion, messages, scheduling, and next human action in the fixture shell; authenticated UI remains outstanding.
 - [x] Append audit events for candidate answers, extraction, evaluation, correction, override, handoff, and disposition where those local actions exist.
 - [x] Add tests proving no agent or worker can create a final hire/reject disposition.
 

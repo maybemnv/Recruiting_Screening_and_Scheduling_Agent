@@ -46,17 +46,41 @@
               <div id="candidate-questions" class="question-stack" aria-live="polite">
                 <p class="loading-state">Loading published questions...</p>
               </div>
+              <div class="field-grid">
+                <label>Resume status
+                  <select name="resumeStatus">
+                    <option value="not_provided">No resume</option>
+                    <option value="complete">Readable fixture resume</option>
+                    <option value="unavailable">Unreadable resume</option>
+                  </select>
+                </label>
+                <label>Resume file reference<input name="resumeFileId" placeholder="resume-demo-001" /></label>
+              </div>
+              <fieldset class="consent-fieldset">
+                <legend>Contact consent</legend>
+                <label class="checkbox-label"><input name="smsConsent" type="checkbox" checked /> SMS updates</label>
+                <label class="checkbox-label"><input name="emailConsent" type="checkbox" /> Email updates</label>
+              </fieldset>
               <div class="form-actions">
-                <button class="button button-primary" type="button" id="save-preview">Save preview answer</button>
+                <button class="button button-primary" type="submit" id="save-preview">Submit application</button>
                 <span id="candidate-status" class="inline-status" role="status">No application submitted.</span>
               </div>
             </form>
+            <section id="candidate-results" class="result-panel is-hidden" aria-live="polite" aria-label="Screening state"></section>
           </div>
           <aside class="support-panel">
             <p class="eyebrow">CANDIDATE CONTROL</p>
             <h2>Need a person?</h2>
             <p>You can request human help before completing an inaccessible or unclear step.</p>
             <button class="button button-secondary" type="button" id="human-help">Request human help</button>
+            <div id="slot-picker" class="slot-picker is-hidden">
+              <div class="panel-rule"></div>
+              <label>Choose a Chicago-time-zone slot
+                <select id="slot-select"></select>
+              </label>
+              <button class="button button-primary" type="button" id="book-slot">Confirm interview slot</button>
+              <button class="button button-secondary" type="button" id="reschedule-slot">Replace confirmed slot</button>
+            </div>
             <div class="panel-rule"></div>
             <p class="small-copy">This prototype pauses automated screening when the handoff flow is connected.</p>
           </aside>
@@ -79,6 +103,16 @@
                 <tbody id="criteria-table"><tr><td colspan="4" class="loading-state">Loading criteria...</td></tr></tbody>
               </table>
             </div>
+            <div class="panel-rule"></div>
+            <p class="eyebrow">APPLICATION PIPELINE</p>
+            <div class="table-wrap">
+              <table>
+                <caption class="sr-only">Candidate pipeline</caption>
+                <thead><tr><th>Candidate</th><th>Status</th><th>Version</th><th>Next</th></tr></thead>
+                <tbody id="pipeline-table"><tr><td colspan="4" class="loading-state">No application loaded.</td></tr></tbody>
+              </table>
+            </div>
+            <section id="recruiter-detail" class="result-panel is-hidden" aria-live="polite" aria-label="Candidate evidence detail"></section>
           </div>
           <aside class="support-panel">
             <p class="eyebrow">VERSION CONTROL</p>

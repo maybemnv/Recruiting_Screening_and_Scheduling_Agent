@@ -89,8 +89,13 @@ def test_demo_ui_serves_candidate_and_recruiter_surfaces(tmp_path):
         assert "Recruiting Screening" in html
         assert "Candidate" in html
         assert "Recruiter" in html
+        assert "resumeStatus" in html
+        assert "pipeline-table" in html
+        assert 'aria-live="polite"' in html
         assert "--brand-ink" in tokens
         assert "api/apply/retail-operations" in script
+        assert "/api/applications/" in script
+        assert "/reschedule" in script
     finally:
         server.shutdown()
         thread.join(timeout=2)
