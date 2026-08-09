@@ -1,8 +1,8 @@
 # Recruiting Screening and Scheduling Agent — Demo Deployment
 
-This guide covers the fixture-first client demo and the planned Supabase
-deployment boundary. It does not claim production readiness, live ATS/calendar
-messaging capability, or legal/compliance certification.
+This guide covers the fixture-first client demo and the Supabase deployment
+boundary. It does not claim production readiness, live ATS/calendar messaging
+capability, or legal/compliance certification.
 
 ## Target infrastructure
 
@@ -14,19 +14,20 @@ reserved for approved resume references; do not upload raw candidate files from
 the current demo.
 
 The current demo defaults to local SQLite and does not require Supabase
-credentials. The server-side Supabase REST boundary is present, but application
-and authorization behavior must be verified against a real project before
-switching the demo backend.
+credentials. The server-side Supabase REST boundary and application tables are
+implemented, but application writes, RLS, and authorization behavior must be
+verified against a real project before switching the demo backend.
 
 ## Local fixture setup
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
 python -m pytest -q --basetemp .pytest-temp
 python -m apps.api --db .local/demo.sqlite3 --port 8000
 ```
+
+The repository has no package lock or production hosting manifest yet; the
+current API uses Python standard-library modules. Install `pytest` only in the
+developer/test environment if it is not already available.
 
 Open `http://127.0.0.1:8000/` for the candidate/recruiter demo shell. The
 fixture path uses SQLite, seeded `retail-job-v1`, and deterministic provider
@@ -55,10 +56,12 @@ fixture mode is secret-free:
 |---|---|---|
 | `RECRUITING_STORE_BACKEND=sqlite` | Local deterministic store | Default and tested |
 | `RECRUITING_SQLITE_PATH` | Local SQLite path | Default `.local/demo.sqlite3` |
-| `RECRUITING_STORE_BACKEND=supabase` | Select Supabase REST store | Future integration switch |
+| `RECRUITING_STORE_BACKEND=supabase` | Select Supabase REST store | Implemented; live project unverified |
 | `SUPABASE_URL` | Supabase project URL | Client supplies later |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only PostgREST/migration access | Secret; never commit |
 | `SUPABASE_ANON_KEY` | Future browser/Auth client key | Not used by current UI |
+| `RECRUITING_DEMO_CALENDAR_MODE=fixture` | Deterministic calendar mode; use `outage` to rehearse provider failure | Fixture-tested |
+| `RECRUITING_DEMO_MESSAGING_MODE=fixture` | Deterministic messaging mode; use `outage` to rehearse delivery failure | Fixture-tested; live messaging not called |
 | `RECRUITING_DEMO_CALENDAR_MODE` | Fixture or simulated calendar outage | Fixture default; no live calendar |
 | `RECRUITING_DEMO_MESSAGING_MODE` | Fixture or simulated messaging outage | Fixture default; no live sender |
 
@@ -68,7 +71,8 @@ workspace authorization tests are complete.
 ## Demo preflight
 
 1. Confirm `python -m pytest -q --basetemp .pytest-temp` passes.
-2. Start the local server and check `/health` reports fixture mode.
+2. Start the local server and check `/health` reports `mode: sqlite` and
+   `providerDependencies: none`.
 3. Open the candidate preview and recruiter requirement/version surfaces.
 4. Create or publish a draft through the local HTTP API and verify published
    versions remain immutable.
@@ -86,9 +90,9 @@ workspace authorization tests are complete.
 
 - Candidate/recruiter UI is a static demo shell; the application evidence and
   pipeline APIs are the authoritative current slice.
-- Supabase application persistence, Auth/RLS workspace ownership, resume
-  storage, migration CI, backups, monitoring, and incident recovery need live
-  project verification.
+- Supabase application persistence is coded but needs live project verification;
+  Auth/RLS workspace ownership, resume storage, migration CI, backups,
+  monitoring, and incident recovery are not provisioned here.
 - ATS, calendar, SMS, and email are fixture-only; no provider credentials or
   scopes are claimed.
 - Scheduling and confirmation are deterministic local fixtures. Retryable
@@ -99,6 +103,17 @@ workspace authorization tests are complete.
 - TLS, authenticated operator access, secret rotation, rate limits, audit
   retention, deletion workflows, and production observability are required
   before external client traffic.
+
+## Deploy/rollback decision
+
+No hosting provider, Dockerfile, worker runtime, domain, or client Supabase
+project was specified in the PRD or checkout. Do not invent one for go-live.
+The client must choose the API host, TLS/domain owner, process supervisor,
+backup/restore policy, log retention, and Supabase region. Before switching a
+staging environment to Supabase, export/backup the project and rehearse the
+migration plus seed. Rollback is a hosting revision rollback plus restoration
+of the approved database backup; there is no destructive down-migration in
+this repository.
 
 ## Handoff checklist
 
@@ -111,3 +126,6 @@ workspace authorization tests are complete.
   behind adapter contracts; label every other capability fixture/blocked.
 - [ ] Run accessibility, responsive, screening, handoff, and human-disposition
   acceptance traces from a clean environment.
+- [ ] Client supplies hosting target, domain/TLS owner, Supabase project,
+  service-role secret, Auth/workspace policy, backups, retention/deletion,
+  first live providers, sender identity, and incident contact.

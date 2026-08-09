@@ -221,10 +221,24 @@ def create_demo_server(
                     return
 
                 recruiter_prefix = "/api/recruiter/jobs/"
+                analytics_suffix = "/analytics"
+                if path.startswith(recruiter_prefix) and path.endswith(analytics_suffix):
+                    job_id = path[len(recruiter_prefix) : -len(analytics_suffix)]
+                    query = parse_qs(parsed.query)
+                    self._json(
+                        200,
+                        applications.analytics(
+                            job_id,
+                            query.get("from", [None])[0],
+                            query.get("to", [None])[0],
+                        ),
+                    )
+                    return
                 pipeline_suffix = "/pipeline"
                 if path.startswith(recruiter_prefix) and path.endswith(pipeline_suffix):
                     job_id = path[len(recruiter_prefix) : -len(pipeline_suffix)]
-                    self._json(200, applications.pipeline(job_id))
+                    status_filter = parse_qs(parsed.query).get("status", [None])[0]
+                    self._json(200, applications.pipeline(job_id, status_filter))
                     return
 
                 history_suffix = "/requirements/history"

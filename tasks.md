@@ -28,7 +28,8 @@
 - [x] Added a server-side Supabase REST boundary, credential-free backend selection, `.env.example`, and an RLS-enabled migration for the future application/evidence/audit tables.
 - [x] Added fixture-first candidate application intake, consent/resume state, version-linked deterministic screening, evidence/evaluation records, review/handoff work items, recruiter detail/pipeline reads, and human-reason disposition controls.
 - [x] Added fixture calendar slot availability, time-zone-aware booking, idempotent confirmation replay, replacement-first rescheduling, duplicate callback reconciliation, and retryable provider-degraded work items.
-- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, scheduling, callbacks, and the local API/UI surface: 19 tests passing.
+- [x] Added pipeline filters, denominator-aware funnel analytics, and a deterministic 500-application reconciliation command.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, scheduling, callbacks, analytics, replay, and the local API/UI surface: 21 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
@@ -41,10 +42,10 @@
 
 ### Next work queue
 
-1. Add candidate application/evidence repository parity to the Supabase boundary and verify RLS/auth ownership.
-2. Add the application evidence matrix, recruiter pipeline filters, and candidate saved-state UI.
-3. Add reminder work items, bounded retries, and provider capability inspection around the scheduling fixture.
-4. Add application evidence/pipeline UI, authenticated Supabase parity, and client acceptance/runbook documentation without adding secrets.
+1. Add candidate correction/approved FAQ behavior, reminder work items, bounded retries, and provider capability inspection.
+2. Verify Supabase writes, RLS/Auth workspace ownership, seed/reset, and migration recovery in a client staging project.
+3. Add live ATS/calendar/messaging adapters only after client provider decisions and contract tests.
+4. Complete manual accessibility review, monitoring attributes, and final client-owned go-live decisions.
 
 The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
 
@@ -109,11 +110,11 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 ## Phase 4 — Recruiter operations, analytics, accessibility, and hardening
 
 - [ ] Build scorecard views that separate automated criterion results, overrides, and final human disposition; do not show an opaque composite rank.
-- [ ] Build funnel analytics by job version, stage, date range, and denominator; show numerator, denominator, missingness, and timestamp definition.
+- [x] Build fixture funnel analytics by job version, stage, date range, and denominator; show denominator, missingness, and timestamp definition.
 - [ ] Add access-controlled monitoring attributes, data sufficiency, adverse-outcome flags, alert owner, investigation status, review note, and resolution event; keep monitoring data out of criterion evaluation.
-- [ ] Apply the shared design tokens with text-plus-icon status, candidate progress, calm saved states, recoverable failures, readable tables, and stacked mobile cards.
+- [x] Apply the shared design tokens with text-plus-state status, candidate progress, saved/error states, readable tables, and stacked mobile cards; full browser QA remains outstanding.
 - [ ] Verify keyboard-only operation, labels/errors, visible focus, live-region updates, 320px candidate flow, zoom, manual-entry fallback, human assistance, and local/canonical time zones.
-- [ ] Replay 500 retail applications and reconcile source applications, internal applications, evaluations, work items, interviews, messages, audit events, and funnel counts.
+- [x] Replay 500 retail applications and reconcile applications, evaluations, evidence, work items, audit events, and funnel counts; live ATS/interview/message reconciliation remains fixture-limited.
 - [ ] Add integration health, secret redaction, audit expansion, retry recovery, and `sync_pending` state inspection.
 
 **Demo gate:** The recruiter reviews the pipeline, evidence scorecard, funnel, audit record, scheduling state, and adverse-outcome monitoring limitations for 500 applications.
@@ -136,10 +137,10 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [ ] Run end-to-end tests for AC-01 through AC-10 and both PRD traces.
 - [ ] Run accessibility and responsive tests for A11Y-01 through A11Y-09, including keyboard, focus, labels, live regions, 320px width, manual entry, handoff, and time zones.
 - [ ] Verify M-03 duplicate interview rate is zero, M-05 message traceability is 100%, M-06 audit completeness is 100%, M-07 human disposition coverage is 100%, M-08 ATS reconciliation is 100% in adapter tests, M-09 release-blocking accessibility defects are zero, M-10 500-application reconciliation is 100%, M-11 alerts are investigated, and Q-01 is observable.
-- [ ] Add `README.md` with setup, migrations, seed/reset commands, demo mode, test doubles, environment variables, and known limitations.
-- [ ] Add `DEMO_SCRIPT.md` with exact accounts, happy/exception paths, expected evidence, provider labels, and fallback steps.
-- [ ] Add `RUNBOOK.md` with worker recovery, correlation IDs, retry/manual handoff, calendar/ATS reconciliation, messaging consent, audit interpretation, and incident procedure.
-- [ ] Add `ACCEPTANCE_MATRIX.md` mapping every Must requirement to evidence, explicit deferral, or blocker.
+- [x] Add `README.md` with setup, migration target, seed/reset commands, demo mode, test doubles, environment variables, and known limitations.
+- [x] Add `DEMO_SCRIPT.md` with fixture happy/exception paths, expected evidence, provider labels, and fallback steps.
+- [x] Add `RUNBOOK.md` with local recovery, correlation IDs, retry/manual handoff, calendar reconciliation, messaging consent, audit interpretation, and incident procedure.
+- [x] Add `ACCEPTANCE_MATRIX.md` mapping the implemented acceptance scenarios to evidence, explicit deferral, or blocker.
 - [x] Add `deployment.md` with verified infrastructure, setup, environment-variable, provider-mode, demo launch, health-check, rollback, and client handoff guidance.
 - [ ] Record client-owned decisions for first live ATS/calendar, sender, prohibited criteria, monitoring attributes, retention/deletion, model/extractor versions, and observed throughput; do not invent them.
 

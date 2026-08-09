@@ -26,6 +26,8 @@ Then open:
 - `POST /api/integrations/calendar/callback`
 - `GET /api/recruiter/applications/{applicationId}`
 - `GET /api/recruiter/jobs/{jobId}/pipeline`
+- `GET /api/recruiter/jobs/{jobId}/pipeline?status=review|scheduled|missing_evidence|failed_work`
+- `GET /api/recruiter/jobs/{jobId}/analytics`
 
 Requirement mutation endpoints are available for the local recruiter flow:
 
@@ -55,4 +57,10 @@ are required for the fixture demo.
 
 ```powershell
 python -m pytest -q --basetemp .pytest-temp
+```
+
+Replay the deterministic PRD scale scenario without external providers:
+
+```powershell
+python -m apps.api.replay --db .local/replay.sqlite3 --count 500
 ```

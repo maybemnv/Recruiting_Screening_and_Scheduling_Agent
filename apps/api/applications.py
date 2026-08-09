@@ -311,9 +311,36 @@ class ApplicationService:
             detail.update({"interviews": [], "messages": []})
         return detail
 
-    def pipeline(self, job_id: str) -> dict[str, Any]:
+    def pipeline(self, job_id: str, status_filter: str | None = None) -> dict[str, Any]:
         self.requirements.get_job(job_id)
         rows = self.store.list_applications(job_id)
+        if status_filter:
+            if status_filter in {
+                "received", "in_progress", "awaiting_candidate", "review",
+                "ready_to_schedule", "scheduled", "interviewed", "human_handoff",
+                "withdrawn", "dispositioned",
+            }:
+                rows = [row for row in rows if row["status"] == status_filter]
+            elif status_filter == "missing_evidence":
+                rows = [
+                    row
+                    for row in rows
+                    if any(
+                        result["result"] in {"review", "not_evaluated"}
+                        for result in self.store.list_evaluations(row["id"])
+                    )
+                ]
+            elif status_filter == "failed_work":
+                rows = [
+                    row
+                    for row in rows
+                    if any(
+                        item["status"] in {"retryable", "failed"}
+                        for item in self.store.list_work_items(row["id"])
+                    )
+                ]
+            else:
+                raise ApplicationError(422, "INVALID_PIPELINE_FILTER", "Unsupported pipeline filter")
         counts: dict[str, int] = {}
         for row in rows:
             status = row["status"]
@@ -321,7 +348,41 @@ class ApplicationService:
         return {
             "jobId": job_id,
             "counts": counts,
-            "rows": [self._serialize_application(row, include_contact=False) for row in rows],
+            "rows": [self._serialize_application(row, include_contact=True) for row in rows],
+        }
+
+    def analytics(self, job_id: str, date_from: str | None = None, date_to: str | None = None) -> dict[str, Any]:
+        self.requirements.get_job(job_id)
+        rows = self.store.list_applications(job_id)
+        stages: dict[str, int] = {}
+        versions: dict[str, int] = {}
+        without_evaluation = 0
+        evaluations_without_evidence = 0
+        for row in rows:
+            stages[row["status"]] = stages.get(row["status"], 0) + 1
+            version_id = row["requirement_version_id"]
+            versions[version_id] = versions.get(version_id, 0) + 1
+            evaluations = self.store.list_evaluations(row["id"])
+            if not evaluations:
+                without_evaluation += 1
+            evaluations_without_evidence += sum(
+                1 for evaluation in evaluations if not self._json_value(evaluation["evidence_ids"], [])
+            )
+        return {
+            "jobId": job_id,
+            "dateRange": {"from": date_from, "to": date_to},
+            "timestampDefinition": "applications.created_at",
+            "denominator": len(rows),
+            "stages": stages,
+            "byRequirementVersion": versions,
+            "missingness": {
+                "applicationsWithoutEvaluation": without_evaluation,
+                "evaluationsWithoutEvidence": evaluations_without_evidence,
+            },
+            "finalDisposition": {
+                "humanRecorded": sum(1 for row in rows if row["status"] == "dispositioned"),
+                "automated": 0,
+            },
         }
 
     def screening_response(
