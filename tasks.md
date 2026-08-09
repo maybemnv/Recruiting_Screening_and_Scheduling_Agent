@@ -1,0 +1,147 @@
+# Recruiting Screening and Scheduling Agent — Client Demo Prototype Tasks
+
+**Goal:** Build a recruiter-controlled, auditable prototype that publishes explicit screening criteria, collects a mobile application, explains every criterion result with evidence, schedules or reschedules interviews, and keeps final disposition with a human recruiter.
+
+**Architecture:** Use the PRD boundaries: Next.js candidate and recruiter surfaces, FastAPI typed API, PostgreSQL immutable requirement/evidence/audit state, durable workflow workers, SMS/email workers, and adapter contracts for ATS, calendar, and messaging providers. Deterministic test doubles are the primary client-demo path.
+
+**Tech stack:** Next.js, FastAPI, PostgreSQL, workflow engine, SMS and email workers, and adapters for Greenhouse, Lever, Ashby, Workday, Twilio, Google Calendar, and Microsoft 365, as bounded by `PRD.md`.
+
+## Global constraints
+
+- [ ] Preserve human accountability: the agent can recommend `pass`, `fail`, `review`, or `not_evaluated`, but cannot finalize hire/reject or bypass recruiter review.
+- [ ] Every decision-bearing result links to requirement version, criterion ID, rule, evidence, evaluator/model version, actor, timestamp, and correlation ID.
+- [ ] Unreadable resumes, ambiguous answers, accessibility barriers, human requests, worker failures, and provider failures route to visible review or handoff work; never fabricate evidence.
+- [ ] Use one published retail job and deterministic ATS, calendar, SMS, and email fixtures for the demo; mark provider capabilities as live, fixture, blocked, or uncertain.
+- [ ] Use `D:\ARC Automation Service\design.md` as the shared visual authority for genre, shell, palette, typography, spacing, shape, motion, and explicit states. Adapt it to candidate/recruiter surfaces; do not copy call or revenue content.
+- [ ] Keep the PRD out-of-scope boundary: no autonomous hire/reject, opaque ranking, executive recruiting, native apps, sourcing, outbound campaigns, offers, compensation, onboarding, payroll, background checks, video/voice interviewing, or legal/compliance certification.
+
+## Current status - 2026-08-09
+
+### Delivered in the first vertical slice
+
+- [x] Added a fixture-first local SQLite requirement store under `apps/api/`.
+- [x] Seeded `retail-job-v1` from `fixtures/retail_job_v1.json` with the five PRD criteria: work authorization, availability, location, experience, and interview slot.
+- [x] Implemented criterion validation, draft creation, publication, immutable published versions, and candidate-facing preview generation.
+- [x] Added a dependency-free local HTTP API with recruiter job listing, recruiter requirements, candidate preview, and health endpoints.
+- [x] Added TDD coverage for immutable versions, preview consistency, and the local API surface: 3 tests passing.
+- [x] Added local run instructions and ignored generated SQLite/test scratch paths.
+
+### Not yet complete
+
+- [ ] Candidate and recruiter UI surfaces are not scaffolded yet; the shared root `design.md` has not been applied to UI code.
+- [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
+- [ ] The Phase 1 API does not yet expose job draft/publish mutations; the current API is read-only over the seeded fixture.
+- [ ] Candidate answers, consent, resume upload, screening evaluation, handoff, audit events, PostgreSQL, workers, and provider adapters remain outstanding.
+
+### Next work queue
+
+1. Scaffold the candidate application route and recruiter requirements/pipeline surfaces.
+2. Apply the root design schema to the recruiting shell, tokens, status states, mobile layout, and visible focus behavior.
+3. Add API tests and endpoints for draft creation, validation, publish, and version history.
+4. Implement ordered candidate answer capture and evidence records before starting Phase 2 rule evaluation.
+
+The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
+
+## Target file structure
+
+- Create `apps/web/` for candidate and recruiter routes, components, tokens, and typed client.
+- Create `apps/api/` for job, requirements, applications, evaluations, scheduling, handoff, audit, analytics, and adapter APIs.
+- Create `workers/` for resume extraction, screening, reminders, calendar reconciliation, messaging, ATS sync, and retry work.
+- Create `db/migrations/` and `db/seed_retail_demo.sql` for jobs, immutable criteria, applications, evidence, evaluations, interviews, work items, funnel events, and audit records.
+- Create `adapters/` for ATS, calendar, SMS, and email interfaces plus deterministic test doubles.
+- Create `tests/contracts/`, `tests/workflows/`, `tests/accessibility/`, `tests/traces/`, and `tests/analytics/` for API, safety, UI, trace, and metric coverage.
+- Create `README.md`, `.env.example`, `DEMO_SCRIPT.md`, `RUNBOOK.md`, and `ACCEPTANCE_MATRIX.md` for client operation.
+
+## Phase 0 — Demo contract, design mapping, and foundation
+
+- [ ] Convert PRD acceptance scenarios AC-01–AC-10, accessibility requirements A11Y-01–A11Y-09, metrics M-01–M-11, and Q-01 into `ACCEPTANCE_MATRIX.md`.
+- [ ] Scaffold the candidate, recruiter, API, database, worker, adapter, and test boundaries without committing secrets or unverified provider versions.
+- [ ] Define typed contracts for job versions, criteria, candidate evidence, evaluation results, work items, interviews, messages, sync state, monitoring attributes, and audit events.
+- [ ] Adapt the root `design.md` schema into a candidate mobile flow and recruiter desktop workbench: stat strip, review surface, supporting evidence panels, floating-pill navigation, inline operational footer, explicit loading/error states, 4-point spacing, 1px rules, restrained corners, no gradients/glass, and visible focus.
+- [ ] Resolve the token-path mismatch by choosing one CSS token source and mapping semantic pass/review/failure/booking aliases without mixing incompatible visual systems.
+- [ ] Define seeded accounts for candidate, recruiter, reviewer, administrator, and provider test doubles.
+
+**Exit gate:** A clean checkout starts in demo mode and the recruiter/candidate surfaces show the same published job version and expected state labels.
+
+## Phase 1 - Requirements, versioning, and candidate entry
+
+- [ ] Implement job draft creation, criterion validation, candidate-facing wording preview, publication, and immutable requirement versions.
+- [x] Seed `retail-job-v1` with work authorization, availability, location, experience, and interview-slot criteria.
+- [ ] Block unsupported or prohibited criteria at publication time and record the validation reason.
+- [ ] Build `/apply/{jobSlug}` with contact capture, ordered questions, consent context, optional resume upload, generated-question preview, saved state, error state, human-help path, and mobile layout.
+- [ ] Build `/recruiter/jobs` and `/recruiter/jobs/{jobId}/requirements` with job state, criteria, version history, preview, publish, and integration status.
+- [x] Add tests proving candidate wording matches the published version and later edits create a new version without mutating old results.
+
+**Demo gate:** A recruiter publishes the retail job, the candidate opens the flow at 320px width, and version 1 is immutable.
+
+## Phase 2 — Screening, evidence, explainability, and handoff
+
+- [ ] Capture ordered answers, consent context, resume file references, extraction status, evidence spans, confidence, and source references.
+- [ ] Implement deterministic rule evaluation with `pass`, `fail`, `review`, and `not_evaluated` results tied to the requirement version and criterion.
+- [ ] Implement unreadable-resume behavior: extraction is `unavailable`, missing experience remains unknown, and the application enters `review` or `human_handoff`.
+- [ ] Implement ambiguous-answer normalization to `review`, candidate correction, approved FAQ responses, unsupported-question handoff, and recruiter review work items.
+- [ ] Build `/recruiter/jobs/{jobId}/pipeline` with filters for review, handoff, missing evidence, failed work, and scheduled candidates.
+- [ ] Build `/recruiter/applications/{applicationId}` with evidence matrix, rule explanation, source, confidence, audit expansion, scorecard, messages, scheduling, and next human action.
+- [ ] Append audit events for candidate answers, extraction, evaluation, correction, override, handoff, and disposition.
+- [ ] Add tests proving no agent or worker can create a final hire/reject disposition.
+
+**Demo gate:** A candidate submits a resume and answers; the recruiter sees each criterion’s evidence and explanation and can take over any ambiguous case.
+
+## Phase 3 — Scheduling, messaging, and integration boundaries
+
+- [ ] Implement durable work items, correlation IDs, bounded safe retries, idempotency keys, provider-degraded state, and manual recovery tasks.
+- [ ] Implement calendar adapter interfaces for list, reserve, release, update, cancel, and callback reconciliation, with one deterministic test-double provider.
+- [ ] Implement slot selection, time-zone display, confirmation, reminders, consent, provider result, delivery failure, and opt-out state.
+- [ ] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
+- [ ] Ensure duplicate calendar callbacks reconcile by provider event identity or booking key and create exactly one active interview.
+- [ ] Implement ATS adapter contracts and test doubles for Greenhouse, Lever, Ashby, and Workday; keep live mappings behind explicit capabilities.
+- [ ] Add integration health, retry, `sync_pending`, provider failure, and manual handoff UI.
+- [ ] Add tests for duplicate callbacks, auth failure, rate limit, malformed payload, provider outage, partial write, booking failure, and idempotent ATS updates.
+
+**Demo gate:** A passing candidate selects a slot, receives confirmation, reschedules safely, and sees a provider failure become visible recruiter work.
+
+## Phase 4 — Recruiter operations, analytics, accessibility, and hardening
+
+- [ ] Build scorecard views that separate automated criterion results, overrides, and final human disposition; do not show an opaque composite rank.
+- [ ] Build funnel analytics by job version, stage, date range, and denominator; show numerator, denominator, missingness, and timestamp definition.
+- [ ] Add access-controlled monitoring attributes, data sufficiency, adverse-outcome flags, alert owner, investigation status, review note, and resolution event; keep monitoring data out of criterion evaluation.
+- [ ] Apply the shared design tokens with text-plus-icon status, candidate progress, calm saved states, recoverable failures, readable tables, and stacked mobile cards.
+- [ ] Verify keyboard-only operation, labels/errors, visible focus, live-region updates, 320px candidate flow, zoom, manual-entry fallback, human assistance, and local/canonical time zones.
+- [ ] Replay 500 retail applications and reconcile source applications, internal applications, evaluations, work items, interviews, messages, audit events, and funnel counts.
+- [ ] Add integration health, secret redaction, audit expansion, retry recovery, and `sync_pending` state inspection.
+
+**Demo gate:** The recruiter reviews the pipeline, evidence scorecard, funnel, audit record, scheduling state, and adverse-outcome monitoring limitations for 500 applications.
+
+## Client demo scenario
+
+1. Publish `retail-job-v1` with work authorization, availability, location, experience, and interview-slot criteria.
+2. Open the candidate flow, submit a resume, answer all five questions, and select a Chicago-time-zone slot.
+3. Show versioned evaluations, evidence, rule explanations, scheduled state, confirmation, and reminder trace.
+4. Open the recruiter pipeline and application detail; show that final disposition is still a recruiter action.
+5. Run the exception path with unreadable resume, ambiguous availability, human request, manual evidence correction, and replacement-first rescheduling.
+6. Replay a duplicate calendar callback and show one active interview.
+7. Simulate provider failure and show visible retry/manual work rather than lost state.
+8. Show funnel denominators, scorecard, audit trail, monitoring data limitations, and the 500-application reconciliation.
+
+## Validation and handoff
+
+- [ ] Run contract tests for authorization, typed HTTP responses, immutable versions, reason-required override/disposition, and adapter interfaces.
+- [ ] Run workflow tests for consent, evidence linkage, no-fabrication, idempotency, duplicate callbacks, retry boundaries, provider failure, ATS `sync_pending`, and replacement-first rescheduling.
+- [ ] Run end-to-end tests for AC-01 through AC-10 and both PRD traces.
+- [ ] Run accessibility and responsive tests for A11Y-01 through A11Y-09, including keyboard, focus, labels, live regions, 320px width, manual entry, handoff, and time zones.
+- [ ] Verify M-03 duplicate interview rate is zero, M-05 message traceability is 100%, M-06 audit completeness is 100%, M-07 human disposition coverage is 100%, M-08 ATS reconciliation is 100% in adapter tests, M-09 release-blocking accessibility defects are zero, M-10 500-application reconciliation is 100%, M-11 alerts are investigated, and Q-01 is observable.
+- [ ] Add `README.md` with setup, migrations, seed/reset commands, demo mode, test doubles, environment variables, and known limitations.
+- [ ] Add `DEMO_SCRIPT.md` with exact accounts, happy/exception paths, expected evidence, provider labels, and fallback steps.
+- [ ] Add `RUNBOOK.md` with worker recovery, correlation IDs, retry/manual handoff, calendar/ATS reconciliation, messaging consent, audit interpretation, and incident procedure.
+- [ ] Add `ACCEPTANCE_MATRIX.md` mapping every Must requirement to evidence, explicit deferral, or blocker.
+- [ ] Record client-owned decisions for first live ATS/calendar, sender, prohibited criteria, monitoring attributes, retention/deletion, model/extractor versions, and observed throughput; do not invent them.
+
+## Final acceptance gates
+
+- [ ] The retail happy path runs from application intake through scheduled interview and recruiter disposition.
+- [ ] The unreadable/ambiguous/human-handoff/reschedule path is visible and recoverable.
+- [ ] No agent or worker can finalize hire or reject.
+- [ ] Every decision-bearing event includes actor, version, timestamp, evidence, and required reason.
+- [ ] Duplicate callbacks do not create duplicate interviews or messages.
+- [ ] Candidate and recruiter flows meet keyboard, focus, labeling, responsive, and time-zone requirements.
+- [ ] The demo is repeatable from fixtures, and all provider limitations are clearly labeled for client fine-tuning.
