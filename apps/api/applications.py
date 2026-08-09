@@ -224,12 +224,10 @@ class ApplicationService:
                 "screening_requires_review",
                 correlation_id,
             )
-        return {
-            "applicationId": application_id,
-            "requirementVersionId": version.id,
-            "results": results,
-            "nextAction": next_status,
-        }
+        return self.screening_response(
+            self._get_application(application_id),
+            self.store.list_evaluations(application_id),
+        )
 
     def request_handoff(self, application_id: str, reason: str) -> dict[str, Any]:
         if not isinstance(reason, str) or not reason.strip():
@@ -563,6 +561,14 @@ class ApplicationService:
         }
 
     def _audit_mapping(self, row: Mapping[str, Any]) -> dict[str, Any]:
+        try:
+            before_state = row["before_state"]
+        except (IndexError, KeyError):
+            before_state = row["before"]
+        try:
+            after_state = row["after_state"]
+        except (IndexError, KeyError):
+            after_state = row["after"]
         return {
             "id": row["id"],
             "occurredAt": row["occurred_at"],
@@ -571,8 +577,8 @@ class ApplicationService:
             "action": row["action"],
             "entityType": row["entity_type"],
             "entityId": row["entity_id"],
-            "before": self._json_value(row.get("before_state", row.get("before"))),
-            "after": self._json_value(row.get("after_state", row.get("after"))),
+            "before": self._json_value(before_state),
+            "after": self._json_value(after_state),
             "reason": row["reason"],
             "correlationId": row["correlation_id"],
             "sourceVersion": row["source_version"],

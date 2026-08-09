@@ -138,12 +138,8 @@ def create_demo_server(
                 self._error(422, "INVALID_CRITERIA", str(error))
             elif isinstance(error, sqlite3.IntegrityError):
                 self._error(409, "CONFLICT", "The requested requirement version conflicts with existing state")
-            elif isinstance(error, PermissionError):
-                self._error(403, str(error), "A human recruiter is required for this action")
             elif isinstance(error, ApplicationError):
-                code = str(error)
-                status = 409 if code == "HUMAN_REASON_REQUIRED" else 422
-                self._error(status, code, str(error))
+                self._error(error.status, error.code, error.message)
             else:
                 self._error(400, "INVALID_REQUEST", str(error))
 
@@ -169,7 +165,7 @@ def create_demo_server(
                         200,
                         {
                             "status": "ok",
-                            "mode": "fixture",
+                            "mode": config.backend,
                             "providerDependencies": "none",
                         },
                     )
@@ -207,7 +203,7 @@ def create_demo_server(
                 application_detail_prefix = "/api/recruiter/applications/"
                 if path.startswith(application_detail_prefix):
                     application_id = path[len(application_detail_prefix) :]
-                    self._json(200, applications.detail(application_id))
+                    self._json(200, applications.application_detail(application_id))
                     return
 
                 recruiter_prefix = "/api/recruiter/jobs/"
@@ -318,16 +314,32 @@ def create_demo_server(
                     application_id, action = parts
                     payload = self._read_json() if self.headers.get("Content-Length") else {}
                     if action == "screen":
-                        self._json(200, applications.screen(application_id, payload.get("idempotencyKey")))
+                        self._json(
+                            200,
+                            applications.screen_application(
+                                application_id, payload.get("idempotencyKey")
+                            ),
+                        )
                         return
                     if action == "handoff":
                         reason = payload.get("reason")
                         if not isinstance(reason, str):
-                            raise ApplicationError("handoff reason is required")
-                        self._json(200, applications.handoff(application_id, reason))
+                            raise ApplicationError(
+                                409, "HANDOFF_REASON_REQUIRED", "A handoff reason is required"
+                            )
+                        self._json(200, applications.request_handoff(application_id, reason))
                         return
                     if action == "disposition":
-                        self._json(200, applications.disposition(application_id, payload))
+                        self._json(
+                            200,
+                            applications.record_disposition(
+                                application_id,
+                                str(payload.get("actorType", "")),
+                                payload.get("actorId"),
+                                str(payload.get("disposition", "")),
+                                payload.get("reason"),
+                            ),
+                        )
                         return
                     self._error(404, "NOT_FOUND", "Route not found")
                     return
