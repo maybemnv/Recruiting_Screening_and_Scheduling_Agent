@@ -1,0 +1,67 @@
+{
+  "job": {
+    "id": "retail-job",
+    "slug": "retail-operations",
+    "title": "Retail Operations Associate"
+  },
+  "requirementVersion": {
+    "id": "retail-job-v1",
+    "criteria": [
+      {
+        "id": "work_authorization",
+        "label": "Work authorization",
+        "type": "work_authorization",
+        "operator": "equals",
+        "expectedValue": true,
+        "required": true,
+        "knockout": true,
+        "candidateQuestion": "Are you authorized to work in the job location?",
+        "explanation": "This role requires current work authorization."
+      },
+      {
+        "id": "availability",
+        "label": "Availability",
+        "type": "availability",
+        "operator": "overlaps",
+        "expectedValue": ["weekends"],
+        "required": true,
+        "knockout": true,
+        "candidateQuestion": "Which days and times are you available to work?",
+        "explanation": "The retail team needs weekend availability."
+      },
+      {
+        "id": "location",
+        "label": "Location",
+        "type": "location",
+        "operator": "equals",
+        "expectedValue": "Chicago",
+        "required": true,
+        "knockout": true,
+        "candidateQuestion": "Are you located in or able to commute to Chicago?",
+        "explanation": "This role is based in Chicago."
+      },
+      {
+        "id": "experience",
+        "label": "Experience",
+        "type": "experience",
+        "operator": "greater_than_or_equal",
+        "expectedValue": 2,
+        "required": true,
+        "knockout": false,
+        "candidateQuestion": "How many years of relevant customer-facing experience do you have?",
+        "explanation": "The role expects at least two years of relevant experience."
+      },
+      {
+        "id": "interview_slot",
+        "label": "Interview slot",
+        "type": "availability",
+        "operator": "overlaps",
+        "expectedValue": {"timeZone": "America/Chicago"},
+        "required": true,
+        "knockout": false,
+        "candidateQuestion": "Which available interview slot works best for you?",
+        "explanation": "The candidate must select an available interview slot."
+      }
+    ]
+  }
+}
