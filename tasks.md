@@ -30,7 +30,8 @@
 
 ### Not yet complete
 
-- [x] Candidate and recruiter UI surfaces are scaffolded with the shared root design schema adapted to recruiting evidence and requirements.
+- [x] Added a small candidate/recruiter fixture demo shell with the shared root design schema, preview, and version-state interactions.
+- [ ] Full candidate application and recruiter operations UI surfaces remain outstanding; the shell is limited to requirement preview/versioning and does not capture applications or screening work.
 - [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
 - [ ] The Phase 1 API does not yet capture candidate applications; requirement draft/publish/validation mutations are now available locally.
 - [ ] Candidate answers, consent, resume upload, screening evaluation, handoff, audit events, PostgreSQL, workers, and provider adapters remain outstanding.
@@ -69,7 +70,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 
 - [x] Implement local job draft creation, criterion validation, candidate-facing wording preview, publication, and immutable requirement versions.
 - [x] Seed `retail-job-v1` with work authorization, availability, location, experience, and interview-slot criteria.
-- [ ] Block unsupported or prohibited criteria at publication time and record the validation reason.
+- [x] Reject invalid or unsupported criteria at local draft, replacement, validation, and publish boundaries with safe JSON validation reasons; policy blocklists and audit records remain outstanding.
 - [ ] Build `/apply/{jobSlug}` with contact capture, ordered questions, consent context, optional resume upload, generated-question preview, saved state, error state, human-help path, and mobile layout.
 - [ ] Build `/recruiter/jobs` and `/recruiter/jobs/{jobId}/requirements` with job state, criteria, version history, preview, publish, and integration status.
 - [x] Add tests proving candidate wording matches the published version and later edits create a new version without mutating old results.
@@ -136,6 +137,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [ ] Add `DEMO_SCRIPT.md` with exact accounts, happy/exception paths, expected evidence, provider labels, and fallback steps.
 - [ ] Add `RUNBOOK.md` with worker recovery, correlation IDs, retry/manual handoff, calendar/ATS reconciliation, messaging consent, audit interpretation, and incident procedure.
 - [ ] Add `ACCEPTANCE_MATRIX.md` mapping every Must requirement to evidence, explicit deferral, or blocker.
+- [ ] Add `deployment.md` with verified infrastructure, setup, environment-variable, provider-mode, demo launch, health-check, rollback, and client handoff guidance.
 - [ ] Record client-owned decisions for first live ATS/calendar, sender, prohibited criteria, monitoring attributes, retention/deletion, model/extractor versions, and observed throughput; do not invent them.
 
 ## Final acceptance gates
