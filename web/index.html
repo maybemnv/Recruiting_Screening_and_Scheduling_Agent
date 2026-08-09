@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121314" />
+    <title>Recruiting Screening Workbench</title>
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <p class="eyebrow">ARC / RECRUITING OPERATIONS</p>
+          <h1>Screening workbench</h1>
+        </div>
+        <nav class="nav-pill" aria-label="Prototype surfaces" role="tablist">
+          <button class="nav-button is-active" data-view="candidate" role="tab" aria-selected="true">Candidate</button>
+          <button class="nav-button" data-view="recruiter" role="tab" aria-selected="false">Recruiter</button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="stat-strip" aria-label="Demo state">
+          <div><span class="stat-label">JOB</span><strong id="job-title">Loading...</strong></div>
+          <div><span class="stat-label">VERSION</span><strong id="job-version">Loading...</strong></div>
+          <div><span class="stat-label">PROVIDERS</span><strong>Fixture mode</strong></div>
+        </section>
+
+        <section id="candidate-view" class="view-grid" role="tabpanel" aria-labelledby="candidate-tab">
+          <div class="primary-surface">
+            <div class="surface-heading">
+              <div>
+                <p class="eyebrow">CANDIDATE PREVIEW</p>
+                <h2>Tell us about your fit</h2>
+              </div>
+              <span class="state-badge state-neutral">Preview mode</span>
+            </div>
+            <p class="lede">Answer the configured questions in order. Your progress is shown without exposing an opaque score.</p>
+            <form id="candidate-form" novalidate>
+              <div class="field-grid">
+                <label>Name<input name="name" autocomplete="name" placeholder="Jordan Lee" /></label>
+                <label>Email<input name="email" type="email" autocomplete="email" placeholder="jordan@example.com" /></label>
+              </div>
+              <div id="candidate-questions" class="question-stack" aria-live="polite">
+                <p class="loading-state">Loading published questions...</p>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="button" id="save-preview">Save preview answer</button>
+                <span id="candidate-status" class="inline-status" role="status">No application submitted.</span>
+              </div>
+            </form>
+          </div>
+          <aside class="support-panel">
+            <p class="eyebrow">CANDIDATE CONTROL</p>
+            <h2>Need a person?</h2>
+            <p>You can request human help before completing an inaccessible or unclear step.</p>
+            <button class="button button-secondary" type="button" id="human-help">Request human help</button>
+            <div class="panel-rule"></div>
+            <p class="small-copy">This prototype pauses automated screening when the handoff flow is connected.</p>
+          </aside>
+        </section>
+
+        <section id="recruiter-view" class="view-grid is-hidden" role="tabpanel" aria-label="Recruiter requirements">
+          <div class="primary-surface">
+            <div class="surface-heading">
+              <div>
+                <p class="eyebrow">RECRUITER REQUIREMENTS</p>
+                <h2>Retail Operations Associate</h2>
+              </div>
+              <span id="recruiter-version" class="state-badge state-active">Published</span>
+            </div>
+            <p class="lede">Review the exact candidate wording, rule, and knockout status before publishing a new version.</p>
+            <div class="table-wrap">
+              <table>
+                <caption class="sr-only">Published screening criteria</caption>
+                <thead><tr><th>Criterion</th><th>Candidate wording</th><th>Rule</th><th>State</th></tr></thead>
+                <tbody id="criteria-table"><tr><td colspan="4" class="loading-state">Loading criteria...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <aside class="support-panel">
+            <p class="eyebrow">VERSION CONTROL</p>
+            <h2>Immutable history</h2>
+            <p id="version-copy">Published results stay linked to their requirement version.</p>
+            <span class="state-badge state-neutral">Human disposition required</span>
+            <div class="panel-rule"></div>
+            <p class="small-copy">Provider status: fixture. No live ATS, calendar, SMS, or email calls are made.</p>
+          </aside>
+        </section>
+      </main>
+
+      <footer class="footer-rule"><span>LOCAL DEMO / EXPLICIT REQUIREMENTS / HUMAN ACCOUNTABILITY</span><span>Build state is visible</span></footer>
+    </div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

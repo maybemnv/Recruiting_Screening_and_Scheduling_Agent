@@ -1,0 +1,19 @@
+:root {
+  --brand-silver: #d9dada;
+  --brand-steel: #adaeb0;
+  --brand-blue: #c3d4e8;
+  --brand-gray: #c6c7c8;
+  --brand-soft: #f3f3f3;
+  --brand-slate: #3e4246;
+  --brand-ink: #121314;
+  --brand-white: #f7f7f7;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --focus-ring: #c3d4e8;
+}

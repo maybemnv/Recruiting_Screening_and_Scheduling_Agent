@@ -152,3 +152,15 @@ class SQLiteStore:
                 "ORDER BY version DESC LIMIT 1",
                 (job_id,),
             ).fetchone()
+
+
+    def list_requirement_versions(self, job_id: str) -> list[sqlite3.Row]:
+        with self._lock:
+            return list(
+                self.connection.execute(
+                    "SELECT id, job_id, version, status, published_at "
+                    "FROM requirement_versions WHERE job_id = ? "
+                    "ORDER BY version DESC",
+                    (job_id,),
+                ).fetchall()
+            )

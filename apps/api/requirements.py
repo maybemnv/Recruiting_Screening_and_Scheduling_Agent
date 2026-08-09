@@ -50,6 +50,8 @@ class Criterion:
 
     @classmethod
     def from_mapping(cls, value: dict[str, Any]) -> "Criterion":
+        if not isinstance(value, dict):
+            raise RequirementError("Each criterion must be a JSON object")
         required = {
             "id",
             "label",
@@ -66,12 +68,20 @@ class Criterion:
             raise RequirementError(
                 f"Criterion is missing required fields: {', '.join(missing)}"
             )
-        if value["type"] not in CRITERION_TYPES:
+        if not isinstance(value["type"], str) or value["type"] not in CRITERION_TYPES:
             raise RequirementError(f"Unsupported criterion type: {value['type']}")
-        if value["operator"] not in OPERATORS:
+        if not isinstance(value["operator"], str) or value["operator"] not in OPERATORS:
             raise RequirementError(f"Unsupported criterion operator: {value['operator']}")
         if not isinstance(value["id"], str) or not value["id"].strip():
             raise RequirementError("Criterion id must be a non-empty string")
+        if not isinstance(value["label"], str) or not value["label"].strip():
+            raise RequirementError("Criterion label must be a non-empty string")
+        if not isinstance(value["explanation"], str) or not value["explanation"].strip():
+            raise RequirementError("Criterion explanation is required")
+        if not isinstance(value["required"], bool):
+            raise RequirementError("Criterion required must be a boolean")
+        if not isinstance(value["knockout"], bool):
+            raise RequirementError("Criterion knockout must be a boolean")
         if not isinstance(value["candidateQuestion"], str) or not value[
             "candidateQuestion"
         ].strip():
@@ -82,8 +92,8 @@ class Criterion:
             type=value["type"],
             operator=value["operator"],
             expected_value=value["expectedValue"],
-            required=bool(value["required"]),
-            knockout=bool(value["knockout"]),
+            required=value["required"],
+            knockout=value["knockout"],
             candidate_question=value["candidateQuestion"],
             explanation=value["explanation"],
         )
@@ -116,6 +126,7 @@ class RequirementVersion:
     version: int
     status: str
     criteria: tuple[Criterion, ...]
+    published_at: str | None = None
 
 
 class RequirementService:
@@ -177,6 +188,25 @@ class RequirementService:
         )
         return self.get_version(version_id)
 
+    def validate_criteria(self, criteria: list[dict[str, Any]]) -> tuple[Criterion, ...]:
+        """Validate criteria without creating or changing a requirement version."""
+
+        return self._normalize_criteria(criteria)
+
+    def validate_version(self, version_id: str) -> RequirementVersion:
+        """Validate the stored draft and return its current immutable snapshot."""
+
+        version = self.get_version(version_id)
+        self._normalize_criteria([criterion.to_mapping() for criterion in version.criteria])
+        return version
+
+    def list_versions(self, job_id: str) -> list[RequirementVersion]:
+        self.get_job(job_id)
+        return [
+            self.get_version(row["id"])
+            for row in self.store.list_requirement_versions(job_id)
+        ]
+
     def publish(self, version_id: str) -> RequirementVersion:
         version = self.get_version(version_id)
         if version.status != "draft":
@@ -185,6 +215,7 @@ class RequirementService:
                     f"Requirement version {version_id} is {version.status} and immutable"
                 )
             raise RequirementError(f"Cannot publish version in state {version.status}")
+        self.validate_version(version_id)
         self.store.publish_requirement_version(version_id)
         return self.get_version(version_id)
 
@@ -201,6 +232,7 @@ class RequirementService:
             version=int(row["version"]),
             status=row["status"],
             criteria=criteria,
+            published_at=row["published_at"],
         )
 
     def get_published_version(self, job_id: str) -> RequirementVersion:
@@ -227,8 +259,23 @@ class RequirementService:
             ],
         }
 
+    def candidate_preview_for_job(
+        self, job_id: str, version_id: str | None = None
+    ) -> dict[str, Any]:
+        job = self.get_job(job_id)
+        version = (
+            self.get_published_version(job.id)
+            if version_id is None
+            else self.get_version(version_id)
+        )
+        if version.job_id != job.id:
+            raise KeyError(f"Unknown requirement version: {version.id}")
+        return self.candidate_preview(version.id)
+
     @staticmethod
     def _normalize_criteria(criteria: list[dict[str, Any]]) -> tuple[Criterion, ...]:
+        if not isinstance(criteria, list):
+            raise RequirementError("criteria must be a list")
         if not criteria:
             raise RequirementError("At least one screening criterion is required")
         normalized = tuple(Criterion.from_mapping(value) for value in criteria)

@@ -23,22 +23,24 @@
 - [x] Seeded `retail-job-v1` from `fixtures/retail_job_v1.json` with the five PRD criteria: work authorization, availability, location, experience, and interview slot.
 - [x] Implemented criterion validation, draft creation, publication, immutable published versions, and candidate-facing preview generation.
 - [x] Added a dependency-free local HTTP API with recruiter job listing, recruiter requirements, candidate preview, and health endpoints.
-- [x] Added TDD coverage for immutable versions, preview consistency, and the local API surface: 3 tests passing.
+- [x] Added requirement validation, draft criteria replacement, publish, version history, and precise JSON error responses.
+- [x] Added a design-tokenized candidate/recruiter static demo shell with mobile layout, visible focus, text-plus-state badges, and explicit loading/error states.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, and the local API/UI surface: 7 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
 
-- [ ] Candidate and recruiter UI surfaces are not scaffolded yet; the shared root `design.md` has not been applied to UI code.
+- [x] Candidate and recruiter UI surfaces are scaffolded with the shared root design schema adapted to recruiting evidence and requirements.
 - [ ] The Phase 0 design mapping, acceptance matrix, seeded actor accounts, and full typed domain contracts remain outstanding.
-- [ ] The Phase 1 API does not yet expose job draft/publish mutations; the current API is read-only over the seeded fixture.
+- [ ] The Phase 1 API does not yet capture candidate applications; requirement draft/publish/validation mutations are now available locally.
 - [ ] Candidate answers, consent, resume upload, screening evaluation, handoff, audit events, PostgreSQL, workers, and provider adapters remain outstanding.
 
 ### Next work queue
 
-1. Scaffold the candidate application route and recruiter requirements/pipeline surfaces.
-2. Apply the root design schema to the recruiting shell, tokens, status states, mobile layout, and visible focus behavior.
-3. Add API tests and endpoints for draft creation, validation, publish, and version history.
-4. Implement ordered candidate answer capture and evidence records before starting Phase 2 rule evaluation.
+1. Add candidate application capture, consent context, optional resume status, and recruiter pipeline records.
+2. Implement ordered answer evidence and deterministic rule evaluation before expanding into scheduling.
+3. Add human handoff, audit events, and recruiter application detail.
+4. Keep ATS, calendar, messaging, and deployment work behind deterministic fixtures until provider/client decisions are verified.
 
 The pre-existing task checklist remains the source of the full Phase 0-4 scope; this status records only verified work in the current checkout.
 
@@ -65,7 +67,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 
 ## Phase 1 - Requirements, versioning, and candidate entry
 
-- [ ] Implement job draft creation, criterion validation, candidate-facing wording preview, publication, and immutable requirement versions.
+- [x] Implement local job draft creation, criterion validation, candidate-facing wording preview, publication, and immutable requirement versions.
 - [x] Seed `retail-job-v1` with work authorization, availability, location, experience, and interview-slot criteria.
 - [ ] Block unsupported or prohibited criteria at publication time and record the validation reason.
 - [ ] Build `/apply/{jobSlug}` with contact capture, ordered questions, consent context, optional resume upload, generated-question preview, saved state, error state, human-help path, and mobile layout.
