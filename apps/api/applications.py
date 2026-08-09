@@ -10,6 +10,20 @@ from uuid import uuid4
 from .requirements import Criterion, RequirementService
 
 
+APPROVED_FAQS: tuple[dict[str, str], ...] = (
+    {
+        "id": "schedule-format",
+        "question": "What happens after I submit my application?",
+        "answer": "A recruiter reviews the explicit screening evidence before confirming an interview.",
+    },
+    {
+        "id": "human-review",
+        "question": "Can I ask a recruiter for help?",
+        "answer": "Yes. Use the human-help path and automated screening pauses for recruiter follow-up.",
+    },
+)
+
+
 class ApplicationError(ValueError):
     """A safe, typed application-domain error for the HTTP boundary."""
 
@@ -143,13 +157,20 @@ class ApplicationService:
         return self.application_summary(application_id)
 
     def screen_application(
-        self, application_id: str, idempotency_key: str | None = None
+        self,
+        application_id: str,
+        idempotency_key: str | None = None,
+        force_rerun: bool = False,
     ) -> dict[str, Any]:
         application = self._get_application(application_id)
         version = self.requirements.get_version(application["requirement_version_id"])
         existing = self.store.list_evaluations(application_id)
-        if existing or application["status"] == "human_handoff":
+        if application["status"] == "human_handoff":
             return self.screening_response(application, existing)
+        if existing and not force_rerun:
+            return self.screening_response(application, existing)
+        if force_rerun and existing:
+            self.store.delete_evaluations(application_id)
 
         evidence = self.store.list_evidence(application_id)
         by_criterion: dict[str, list[Mapping[str, Any]]] = {}
@@ -289,6 +310,66 @@ class ApplicationService:
             actor_id=actor_id,
         )
         return self.application_summary(application_id)
+
+    def correct_answer(
+        self, application_id: str, criterion_id: str, value: Any
+    ) -> dict[str, Any]:
+        application = self._get_application(application_id)
+        version = self.requirements.get_version(application["requirement_version_id"])
+        if criterion_id not in {criterion.id for criterion in version.criteria}:
+            raise ApplicationError(422, "UNKNOWN_CRITERION", f"Unknown criterion: {criterion_id}")
+        evidence_id = self._id("ev")
+        self.store.insert_evidence(
+            evidence_id,
+            application_id,
+            criterion_id,
+            "candidate_answer",
+            value,
+            {"kind": "answer", "id": f"correction:{application_id}:{criterion_id}:{evidence_id}"},
+            0.95,
+            "corrected",
+        )
+        if application["status"] not in {"human_handoff", "dispositioned"}:
+            self.store.update_application(application_id, status="review")
+        self._audit(
+            application_id,
+            application["requirement_version_id"],
+            "candidate_answer_corrected",
+            before_state=None,
+            after_state={"criterionId": criterion_id, "evidenceId": evidence_id},
+            correlation_id=f"correction:{application_id}:{criterion_id}",
+            actor_type="candidate",
+        )
+        return self.application_summary(application_id)
+
+    def update_consent(self, application_id: str, channel: str) -> dict[str, Any]:
+        if channel not in {"sms", "email"}:
+            raise ApplicationError(422, "INVALID_CHANNEL", "channel must be sms or email")
+        application = self._get_application(application_id)
+        consent = self._json_value(application["consent"], {})
+        consent[channel] = "denied"
+        self.store.update_application(application_id, consent=consent)
+        self._audit(
+            application_id,
+            application["requirement_version_id"],
+            "candidate_opted_out",
+            before_state={"consent": self._json_value(application["consent"], {})},
+            after_state={"consent": consent},
+            correlation_id=f"opt-out:{application_id}:{channel}",
+            actor_type="candidate",
+        )
+        return self.application_summary(application_id)
+
+    def list_faqs(self, job_slug: str) -> dict[str, Any]:
+        self.requirements.get_job_by_slug(job_slug)
+        return {"jobSlug": job_slug, "faqs": [dict(item) for item in APPROVED_FAQS]}
+
+    def get_faq(self, job_slug: str, faq_id: str) -> dict[str, Any]:
+        self.requirements.get_job_by_slug(job_slug)
+        faq = next((item for item in APPROVED_FAQS if item["id"] == faq_id), None)
+        if faq is None:
+            raise ApplicationError(404, "FAQ_NOT_APPROVED", "The question is not in the approved FAQ")
+        return {"jobSlug": job_slug, "approved": True, **faq}
 
     def application_summary(self, application_id: str) -> dict[str, Any]:
         return self._serialize_application(self._get_application(application_id))

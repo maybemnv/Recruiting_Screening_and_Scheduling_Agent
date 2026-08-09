@@ -20,6 +20,9 @@ Then open:
 - `http://127.0.0.1:8000/api/recruiter/jobs/retail-job/requirements`
 - `POST /api/apply/{jobSlug}/applications`
 - `POST /api/applications/{applicationId}/screen`
+- `POST /api/applications/{applicationId}/answers`
+- `POST /api/applications/{applicationId}/opt-out`
+- `POST /api/applications/{applicationId}/reminders`
 - `GET /api/applications/{applicationId}/slots`
 - `POST /api/applications/{applicationId}/interviews`
 - `POST /api/applications/{applicationId}/reschedule`
@@ -28,6 +31,8 @@ Then open:
 - `GET /api/recruiter/jobs/{jobId}/pipeline`
 - `GET /api/recruiter/jobs/{jobId}/pipeline?status=review|scheduled|missing_evidence|failed_work`
 - `GET /api/recruiter/jobs/{jobId}/analytics`
+- `GET /api/integrations/health`
+- `GET /api/apply/{jobSlug}/faqs`
 
 Requirement mutation endpoints are available for the local recruiter flow:
 
@@ -51,7 +56,9 @@ SQLite-backed. It records candidate evidence, criterion evaluations,
 review/handoff work, human disposition reasons, interview state, confirmation
 messages, and provider callbacks. Supabase persistence and authenticated
 workspace access are the next integration boundary; no live provider secrets
-are required for the fixture demo.
+are required for the fixture demo. Candidate correction/rerun, approved FAQ
+lookup, opt-out reminder suppression, provider capability health, pipeline
+filters, and 500-application replay are also available in fixture mode.
 
 ## Test
 

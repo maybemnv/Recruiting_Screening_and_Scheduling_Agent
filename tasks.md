@@ -29,7 +29,8 @@
 - [x] Added fixture-first candidate application intake, consent/resume state, version-linked deterministic screening, evidence/evaluation records, review/handoff work items, recruiter detail/pipeline reads, and human-reason disposition controls.
 - [x] Added fixture calendar slot availability, time-zone-aware booking, idempotent confirmation replay, replacement-first rescheduling, duplicate callback reconciliation, and retryable provider-degraded work items.
 - [x] Added pipeline filters, denominator-aware funnel analytics, and a deterministic 500-application reconciliation command.
-- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, scheduling, callbacks, analytics, replay, and the local API/UI surface: 21 tests passing.
+- [x] Added candidate correction/rerun, approved FAQ lookup, opt-out reminder suppression, and fixture integration health reporting.
+- [x] Added TDD coverage for immutable versions, preview consistency, HTTP version history/mutations, backend configuration, application screening, evidence, handoff, disposition, scheduling, callbacks, controls, analytics, replay, and the local API/UI surface: 24 tests passing.
 - [x] Added local run instructions and ignored generated SQLite/test scratch paths.
 
 ### Not yet complete
@@ -42,7 +43,7 @@
 
 ### Next work queue
 
-1. Add candidate correction/approved FAQ behavior, reminder work items, bounded retries, and provider capability inspection.
+1. Add bounded worker retries, reminder recovery, and live provider capability contracts.
 2. Verify Supabase writes, RLS/Auth workspace ownership, seed/reset, and migration recovery in a client staging project.
 3. Add live ATS/calendar/messaging adapters only after client provider decisions and contract tests.
 4. Complete manual accessibility review, monitoring attributes, and final client-owned go-live decisions.
@@ -86,7 +87,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [x] Capture ordered answers, consent context, resume file references, extraction status, evidence spans, confidence, and source references.
 - [x] Implement deterministic rule evaluation with `pass`, `fail`, `review`, and `not_evaluated` results tied to the requirement version and criterion.
 - [x] Implement unreadable-resume behavior: extraction is `unavailable`, missing experience remains unknown, and the application enters `review` or `human_handoff`.
-- [ ] Implement ambiguous-answer normalization to `review`, candidate correction, approved FAQ responses, unsupported-question handoff, and recruiter review work items.
+- [x] Implement ambiguous-answer normalization to `review`, candidate correction/rerun, approved FAQ responses, safe unsupported-FAQ handling, and recruiter review work items; free-form FAQ intent classification remains out of scope.
 - [x] Build `/recruiter/jobs/{jobId}/pipeline` with initial status counts, candidate rows, and evidence open action; filters remain outstanding.
 - [x] Build `/recruiter/applications/{applicationId}` detail with evidence matrix, rule explanation, source, confidence, audit expansion, messages, scheduling, and next human action in the fixture shell; authenticated UI remains outstanding.
 - [x] Append audit events for candidate answers, extraction, evaluation, correction, override, handoff, and disposition where those local actions exist.
@@ -98,7 +99,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 
 - [x] Implement durable work-item records, correlation IDs, booking/message idempotency keys, provider-degraded state, and manual recovery tasks for the fixture path; bounded worker retries remain outstanding.
 - [x] Implement fixture calendar adapter interfaces for slot listing, reserve, release-by-cancellation, and callback reconciliation.
-- [x] Implement fixture slot selection, Chicago time-zone display, confirmation, consent check, provider result, and visible provider failure state; reminders and opt-out delivery remain outstanding.
+- [x] Implement fixture slot selection, Chicago time-zone display, confirmation, consent check, provider result, visible provider failure state, reminder records, and opt-out suppression; durable reminder workers remain outstanding.
 - [x] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
 - [x] Ensure duplicate calendar callbacks reconcile by provider event identity or booking key and create exactly one active interview.
 - [ ] Implement ATS adapter contracts and test doubles for Greenhouse, Lever, Ashby, and Workday; keep live mappings behind explicit capabilities.

@@ -135,6 +135,40 @@ class SchedulingService:
             ),
         }
 
+    def reminder(self, application_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        application = self._application(application_id)
+        active = self.store.get_active_interview(application_id)
+        if active is None:
+            raise ApplicationError(409, "INTERVIEW_NOT_BOOKED", "Book an interview before sending a reminder")
+        channel = self._channel(payload.get("channel", "sms"))
+        key = f"message:reminder:{active['id']}:{channel}"
+        existing = [row for row in self.store.list_messages(application_id) if row["idempotency_key"] == key]
+        if existing:
+            return {"message": self._message_mapping(existing[0])}
+        consent = self._consent(application, channel)
+        recipient = self._recipient(application, channel)
+        if consent != "granted":
+            self.store.insert_message(
+                f"message_{uuid4().hex[:16]}", application_id, active["id"], channel,
+                "interview-reminder:v1", recipient, consent,
+                "consent_not_granted", "suppressed", key,
+            )
+        elif os.getenv("RECRUITING_DEMO_MESSAGING_MODE", "fixture") == "outage":
+            self.store.insert_work_item(
+                f"work_{uuid4().hex[:16]}", application_id, "send_message", key,
+                "Messaging provider is unavailable", status="retryable",
+                last_error_code="PROVIDER_DEGRADED",
+            )
+            raise ApplicationError(503, "PROVIDER_DEGRADED", "Messaging provider is unavailable")
+        else:
+            self.store.insert_message(
+                f"message_{uuid4().hex[:16]}", application_id, active["id"], channel,
+                "interview-reminder:v1", recipient, consent,
+                "sent", "sent", key,
+            )
+        rows = [row for row in self.store.list_messages(application_id) if row["idempotency_key"] == key]
+        return {"message": self._message_mapping(rows[0])}
+
     def detail(self, application_id: str) -> dict[str, list[dict[str, Any]]]:
         self._application(application_id)
         return {

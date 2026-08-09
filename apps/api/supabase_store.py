@@ -220,6 +220,7 @@ class SupabaseStore:
         application_id: str,
         *,
         status: str | None = None,
+        consent: dict[str, str] | None = None,
         disposition: str | None = None,
         disposition_reason: str | None = None,
         dispositioned_by: str | None = None,
@@ -227,6 +228,7 @@ class SupabaseStore:
         payload: dict[str, Any] = {}
         for key, value in (
             ("status", status),
+            ("consent", consent),
             ("disposition", disposition),
             ("disposition_reason", disposition_reason),
             ("dispositioned_by", dispositioned_by),
@@ -313,6 +315,14 @@ class SupabaseStore:
             "GET",
             "evaluations",
             query={"application_id": f"eq.{application_id}", "order": "evaluated_at.asc,id.asc"},
+        )
+
+    def delete_evaluations(self, application_id: str) -> None:
+        self._request(
+            "DELETE",
+            "evaluations",
+            query={"application_id": f"eq.{application_id}"},
+            prefer="return=minimal",
         )
 
     def insert_work_item(

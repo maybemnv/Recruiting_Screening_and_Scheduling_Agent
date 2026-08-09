@@ -180,7 +180,30 @@ def create_demo_server(
                     )
                     return
 
+                if path == "/api/integrations/health":
+                    self._json(
+                        200,
+                        {
+                            "store": {"mode": config.backend, "status": "configured"},
+                            "ats": {"status": "blocked", "provider": None},
+                            "calendar": {"status": "fixture", "mode": config.calendar_mode},
+                            "messaging": {"status": "fixture", "mode": config.messaging_mode},
+                        },
+                    )
+                    return
+
                 candidate_prefix = "/api/apply/"
+                faq_marker = "/faqs"
+                if path.startswith(candidate_prefix) and faq_marker in path:
+                    remainder = path[len(candidate_prefix) :]
+                    slug, _, faq_id = remainder.partition(faq_marker)
+                    if faq_id.startswith("/"):
+                        faq_id = faq_id[1:]
+                    self._json(
+                        200,
+                        applications.list_faqs(slug) if not faq_id else applications.get_faq(slug, faq_id),
+                    )
+                    return
                 if path.startswith(candidate_prefix):
                     slug = path[len(candidate_prefix) :]
                     job = service.get_job_by_slug(slug)
@@ -345,8 +368,19 @@ def create_demo_server(
                         self._json(
                             200,
                             applications.screen_application(
-                                application_id, payload.get("idempotencyKey")
+                                application_id,
+                                payload.get("idempotencyKey"),
+                                bool(payload.get("forceRerun")),
                             ),
+                        )
+                        return
+                    if action == "answers":
+                        criterion_id = payload.get("criterionId")
+                        if not isinstance(criterion_id, str):
+                            raise ApplicationError(422, "CRITERION_REQUIRED", "criterionId is required")
+                        self._json(
+                            200,
+                            applications.correct_answer(application_id, criterion_id, payload.get("value")),
                         )
                         return
                     if action == "interviews":
@@ -354,6 +388,15 @@ def create_demo_server(
                         return
                     if action == "reschedule":
                         self._json(200, scheduling.reschedule(application_id, payload))
+                        return
+                    if action == "reminders":
+                        self._json(200, scheduling.reminder(application_id, payload))
+                        return
+                    if action == "opt-out":
+                        channel = payload.get("channel")
+                        if not isinstance(channel, str):
+                            raise ApplicationError(422, "CHANNEL_REQUIRED", "channel is required")
+                        self._json(200, applications.update_consent(application_id, channel))
                         return
                     if action == "handoff":
                         reason = payload.get("reason")
