@@ -46,7 +46,6 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
-        server.shutdown()
         server.server_close()
         server.demo_store.close()  # type: ignore[attr-defined]
 
