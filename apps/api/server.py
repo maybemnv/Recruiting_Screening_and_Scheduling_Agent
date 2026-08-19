@@ -53,6 +53,7 @@ def create_demo_server(
     db_path: str | Path | None = None,
     port: int = 0,
     backend_config: BackendConfig | None = None,
+    instance_token: str | None = None,
 ) -> ThreadingHTTPServer:
     """Create a seeded local server with no external provider dependencies."""
 
@@ -163,16 +164,16 @@ def create_demo_server(
                     return
 
                 if path == "/health":
-                    self._json(
-                        200,
-                        {
-                            "status": "ok",
-                            "mode": config.backend,
-                            "providerDependencies": "none",
-                            "fixtureReady": config.backend == "sqlite",
-                            "seededJobId": "retail-job",
-                        },
-                    )
+                    health = {
+                        "status": "ok",
+                        "mode": config.backend,
+                        "providerDependencies": "none",
+                        "fixtureReady": config.backend == "sqlite",
+                        "seededJobId": "retail-job",
+                    }
+                    if instance_token is not None:
+                        health["instanceToken"] = instance_token
+                    self._json(200, health)
                     return
 
                 if path == "/api/recruiter/jobs":

@@ -117,7 +117,7 @@ const renderDetail = (detail) => {
     ${recordList("Evaluations", detail.evaluations, (item) => `<strong>${escapeHtml(item.criterionId)}</strong>: ${escapeHtml(item.result)} — ${escapeHtml(item.explanation)}`)}
     ${recordList("Evidence", detail.evidence, (item) => `<strong>${escapeHtml(item.criterionId || item.source)}</strong>: ${escapeHtml(JSON.stringify(item.value))} (${escapeHtml(item.extractionStatus)})`)}
     ${recordList("Interviews", detail.interviews, (item) => `${escapeHtml(item.status)} · ${escapeHtml(item.startsAt)} · ${escapeHtml(item.calendarProvider)}`)}
-    ${recordList("Messages", detail.messages, (item) => `${escapeHtml(item.templateKey)} · ${escapeHtml(item.channel)} · ${escapeHtml(item.providerResult)}`)}
+     ${recordList("Messages", detail.messages, (item) => `${escapeHtml(item.templateVersion)} · ${escapeHtml(item.channel)} · ${escapeHtml(item.providerResult)}`)}
     ${recordList("Work and exceptions", detail.workItems, (item) => `${escapeHtml(item.kind)} · ${escapeHtml(item.status)} · ${escapeHtml(item.lastErrorCode || "no error")}`)}
     ${recordList("Audit trail", detail.auditEvents, (item) => `${escapeHtml(item.action)} · ${escapeHtml(item.actorType)} · ${escapeHtml(item.actorId || "system")}`)}
     ${detail.disposition ? `<div class="disposition-summary"><h4>Final human disposition</h4><p><strong>${escapeHtml(detail.disposition.value)}</strong> by ${escapeHtml(detail.disposition.actorId)}: ${escapeHtml(detail.disposition.reason)}</p></div>` : `<form id="disposition-form" class="disposition-form">
