@@ -6,12 +6,13 @@ From the repository root, use Python and the dependency-free local server:
 
 ```powershell
 python -m pytest -q --basetemp .pytest-temp
-python -m apps.api --db .local/demo.sqlite3 --port 8000
+python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
 
-Open `http://127.0.0.1:8000/`. The page is a fixture shell; no login or real
-candidate data is required. Reset between rehearsals by choosing a new SQLite
-path such as `.local/demo-run-02.sqlite3`.
+Open `http://127.0.0.1:8104/`. The page is a fixture shell; no login or real
+candidate data is required. The same reset command restores the deterministic
+seed. Expected `/health` fields include `fixtureReady: true` and
+`seededJobId: retail-job`.
 
 ## Happy path
 
@@ -24,7 +25,9 @@ path such as `.local/demo-run-02.sqlite3`.
 5. Confirm the Chicago-time-zone slot. Show the fixture confirmation record.
 6. Switch to Recruiter. Open the pipeline row and show evidence, rule
    explanations, audit events, interview, and message records.
-7. Use the recruiter API disposition only with a human actor and a reason.
+7. Choose `Advance`, enter a reason, and select `Record human disposition`.
+   Show the server-owned `fixture-recruiter` identity, audit trail, and the
+   funnel analytics changing to one human-recorded final disposition.
 
 ## Exception path
 
@@ -36,7 +39,7 @@ path such as `.local/demo-run-02.sqlite3`.
 
    ```powershell
    $env:RECRUITING_DEMO_CALENDAR_MODE = "outage"
-   python -m apps.api --db .local/demo-outage.sqlite3 --port 8000
+   python -m apps.api --db .local/demo-outage.sqlite3 --reset --port 8104
    ```
 
    Booking returns visible provider degradation and a retryable work item; the
@@ -56,3 +59,11 @@ python -m apps.api.replay --db .local/replay.sqlite3 --count 500
 
 The output reports applications, five evaluations per application, evidence,
 work items, audit events, funnel total, and a `reconciled` boolean.
+
+## Talk track and close
+
+The rules and evidence are explicit; automation can screen and schedule, but
+the final disposition is attributed to a labelled human fixture identity with
+a required reason. ATS, calendar, SMS, and email calls are simulated; no live
+provider or production-auth claim is made. Show keyboard tab switching and the
+320px candidate layout if requested. Stop the server with `Ctrl+C`.

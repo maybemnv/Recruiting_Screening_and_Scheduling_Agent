@@ -12,6 +12,16 @@ def test_local_api_exposes_recruiter_job_and_candidate_preview(tmp_path):
     base_url = f"http://127.0.0.1:{server.server_address[1]}"
 
     try:
+        with urlopen(f"{base_url}/health") as response:
+            health = json.load(response)
+        assert health == {
+            "fixtureReady": True,
+            "mode": "sqlite",
+            "providerDependencies": "none",
+            "seededJobId": "retail-job",
+            "status": "ok",
+        }
+
         with urlopen(f"{base_url}/api/recruiter/jobs") as response:
             jobs = json.load(response)
         assert jobs["jobs"][0]["id"] == "retail-job"

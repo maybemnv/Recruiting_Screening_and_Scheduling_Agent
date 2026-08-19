@@ -3,20 +3,22 @@
 ## Health and startup
 
 ```powershell
-python -m apps.api --db .local/demo.sqlite3 --port 8000
-Invoke-RestMethod http://127.0.0.1:8000/health
+python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
+Invoke-RestMethod http://127.0.0.1:8104/health
 ```
 
 Expected fixture response includes `status: ok`, `mode: sqlite`, and
-`providerDependencies: none`. With Supabase selected, `mode` reports
+`providerDependencies: none`, `fixtureReady: true`, and
+`seededJobId: retail-job`. With Supabase selected, `mode` reports
 `supabase`; this only proves configuration selection, not a live project
 read/write rehearsal.
 
 ## Reset and recovery
 
 - Stop the local process with `Ctrl+C`.
-- Start the next rehearsal with a new `.local/*.sqlite3` path. The generated
-  database is disposable fixture state.
+- Repeat the startup command with `--reset`. Reset is repeat-safe and accepts
+  only the explicitly selected `.local/*.sqlite3` fixture; it does not touch
+  neighboring databases. Omit `--reset` when preserving a rehearsal.
 - Inspect the recruiter application detail for evidence, evaluations,
   work-items, interviews, messages, and audit events.
 - Provider outage leaves application state intact and writes a retryable work
@@ -51,3 +53,18 @@ read/write rehearsal.
 
 Never print, return, or place `SUPABASE_SERVICE_ROLE_KEY` in browser assets,
 logs, issue comments, screenshots, or client handoff material.
+
+## Browser verification and shutdown
+
+```powershell
+Set-Location web
+npm ci
+npx playwright install chromium
+npm run e2e
+Set-Location ..
+```
+
+There is no static-UI compile step. The browser gate exercises desktop,
+keyboard-visible actions/tab navigation, and the 320px candidate flow. After
+the walkthrough, use `Ctrl+C` in the server terminal and confirm port 8104 is
+no longer listening before deleting any disposable `.local` fixture manually.

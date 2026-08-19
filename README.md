@@ -7,17 +7,20 @@ HTTP API, and a static candidate / recruiter workbench.
 
 ## Run locally
 
+Prerequisites are Python 3.11+ and a modern browser. Node.js 20+ is needed
+only for the Playwright verification suite. Fixture mode needs no credentials.
+
 ```powershell
-python -m apps.api --db .local/demo.sqlite3 --port 8000
+python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
 
 Then open:
 
-- `http://127.0.0.1:8000/` (candidate and recruiter demo shell)
-- `http://127.0.0.1:8000/health`
-- `http://127.0.0.1:8000/api/recruiter/jobs`
-- `http://127.0.0.1:8000/api/apply/retail-operations`
-- `http://127.0.0.1:8000/api/recruiter/jobs/retail-job/requirements`
+- `http://127.0.0.1:8104/` (candidate and recruiter demo shell)
+- `http://127.0.0.1:8104/health`
+- `http://127.0.0.1:8104/api/recruiter/jobs`
+- `http://127.0.0.1:8104/api/apply/retail-operations`
+- `http://127.0.0.1:8104/api/recruiter/jobs/retail-job/requirements`
 - `POST /api/apply/{jobSlug}/applications`
 - `POST /api/applications/{applicationId}/screen`
 - `POST /api/applications/{applicationId}/answers`
@@ -64,7 +67,16 @@ filters, and 500-application replay are also available in fixture mode.
 
 ```powershell
 python -m pytest -q --basetemp .pytest-temp
+Set-Location web
+npm ci
+npx playwright install chromium
+npm run e2e
 ```
+
+The static UI has no compile/build step; `npm run e2e` is its frontend gate
+and covers the desktop story, keyboard operation, and the 320px candidate flow.
+Stop the local server with `Ctrl+C`. Repeat `--reset` only with an explicit
+`.local/*.sqlite3` path; it removes and reseeds that selected fixture database.
 
 Replay the deterministic PRD scale scenario without external providers:
 

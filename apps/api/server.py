@@ -169,6 +169,8 @@ def create_demo_server(
                             "status": "ok",
                             "mode": config.backend,
                             "providerDependencies": "none",
+                            "fixtureReady": config.backend == "sqlite",
+                            "seededJobId": "retail-job",
                         },
                     )
                     return

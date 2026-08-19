@@ -75,6 +75,10 @@ test("keyboard users can operate critical candidate and recruiter actions with v
   await page.keyboard.press("Enter");
   await expect(page.getByRole("status")).toContainText("Interview confirmed");
 
+  await humanHelp.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toContainText("Human help requested");
+
   await candidateTab.focus();
   await page.keyboard.press("ArrowRight");
   await expect(recruiterTab).toBeFocused();
