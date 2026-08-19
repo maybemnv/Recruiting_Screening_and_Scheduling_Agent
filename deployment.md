@@ -22,14 +22,22 @@ verified against a real project before switching the demo backend.
 
 ```powershell
 python -m pytest -q --basetemp .pytest-temp
-python -m apps.api --db .local/demo.sqlite3 --port 8000
+python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
 
-The repository has no package lock or production hosting manifest yet; the
-current API uses Python standard-library modules. Install `pytest` only in the
-developer/test environment if it is not already available.
+The API uses Python standard-library modules. Install `pytest` only in the
+developer/test environment if it is not already available. Browser tooling is
+committed under `web/`; the static UI has no compile step.
 
-Open `http://127.0.0.1:8000/` for the candidate/recruiter demo shell. The
+```powershell
+Set-Location web
+npm ci
+npx playwright install chromium
+npm run e2e
+Set-Location ..
+```
+
+Open `http://127.0.0.1:8104/` for the candidate/recruiter demo shell. The
 fixture path uses SQLite, seeded `retail-job-v1`, and deterministic provider
 boundaries.
 
@@ -71,8 +79,8 @@ workspace authorization tests are complete.
 ## Demo preflight
 
 1. Confirm `python -m pytest -q --basetemp .pytest-temp` passes.
-2. Start the local server and check `/health` reports `mode: sqlite` and
-   `providerDependencies: none`.
+2. Start the local server on 8104 and check `/health` reports `mode: sqlite`,
+   `providerDependencies: none`, `fixtureReady: true`, and the seeded job.
 3. Open the candidate preview and recruiter requirement/version surfaces.
 4. Create or publish a draft through the local HTTP API and verify published
    versions remain immutable.
@@ -83,13 +91,15 @@ workspace authorization tests are complete.
    `slot-002`, and replay the calendar callback to prove duplicate protection.
 7. Set `RECRUITING_DEMO_CALENDAR_MODE=outage` for the exception path and verify
    a retryable `book_interview` work item without losing application state.
-8. Reset `.local/demo.sqlite3` between rehearsals; never use real candidate PII
-   in the fixture database.
+8. Reset only the explicit `.local/demo.sqlite3` fixture with `--reset`; repeat
+   it to prove idempotency and never use real candidate PII.
+9. Stop with `Ctrl+C`; this lightweight service intentionally has no Docker
+   requirement for the showcase.
 
 ## Current limitations before client go-live
 
-- Candidate/recruiter UI is a static demo shell; the application evidence and
-  pipeline APIs are the authoritative current slice.
+- Candidate/recruiter UI is a static fixture demo with an automated desktop,
+  keyboard, and 320px browser gate; it is not production authentication.
 - Supabase application persistence is coded but needs live project verification;
   Auth/RLS workspace ownership, resume storage, migration CI, backups,
   monitoring, and incident recovery are not provisioned here.

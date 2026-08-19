@@ -16,8 +16,8 @@
           <h1>Screening workbench</h1>
         </div>
         <nav class="nav-pill" aria-label="Prototype surfaces" role="tablist">
-          <button class="nav-button is-active" data-view="candidate" role="tab" aria-selected="true">Candidate</button>
-          <button class="nav-button" data-view="recruiter" role="tab" aria-selected="false">Recruiter</button>
+          <button id="candidate-tab" class="nav-button is-active" data-view="candidate" role="tab" aria-selected="true" aria-controls="candidate-view" tabindex="0">Candidate</button>
+          <button id="recruiter-tab" class="nav-button" data-view="recruiter" role="tab" aria-selected="false" aria-controls="recruiter-view" tabindex="-1">Recruiter</button>
         </nav>
       </header>
 
@@ -28,7 +28,7 @@
           <div><span class="stat-label">PROVIDERS</span><strong>Fixture mode</strong></div>
         </section>
 
-        <section id="candidate-view" class="view-grid" role="tabpanel" aria-labelledby="candidate-tab">
+        <section id="candidate-view" class="view-grid" role="tabpanel" aria-labelledby="candidate-tab" tabindex="0">
           <div class="primary-surface">
             <div class="surface-heading">
               <div>
@@ -86,7 +86,7 @@
           </aside>
         </section>
 
-        <section id="recruiter-view" class="view-grid is-hidden" role="tabpanel" aria-label="Recruiter requirements">
+        <section id="recruiter-view" class="view-grid is-hidden" role="tabpanel" aria-labelledby="recruiter-tab" tabindex="0">
           <div class="primary-surface">
             <div class="surface-heading">
               <div>
@@ -113,6 +113,11 @@
               </table>
             </div>
             <section id="recruiter-detail" class="result-panel is-hidden" aria-live="polite" aria-label="Candidate evidence detail"></section>
+            <section id="recruiter-analytics" class="result-panel" aria-live="polite" aria-label="Recruiting funnel analytics">
+              <h3>Funnel analytics</h3>
+              <p class="loading-state">Loading analytics...</p>
+            </section>
+            <p id="recruiter-status" class="inline-status" role="status"></p>
           </div>
           <aside class="support-panel">
             <p class="eyebrow">VERSION CONTROL</p>
