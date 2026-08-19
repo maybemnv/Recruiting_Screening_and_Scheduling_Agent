@@ -411,8 +411,6 @@ def create_demo_server(
                             200,
                             applications.record_disposition(
                                 application_id,
-                                str(payload.get("actorType", "")),
-                                payload.get("actorId"),
                                 str(payload.get("disposition", "")),
                                 payload.get("reason"),
                             ),

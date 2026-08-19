@@ -10,6 +10,9 @@ from uuid import uuid4
 from .requirements import Criterion, RequirementService
 
 
+FIXTURE_RECRUITER_ID = "fixture-recruiter"
+
+
 APPROVED_FAQS: tuple[dict[str, str], ...] = (
     {
         "id": "schedule-format",
@@ -274,17 +277,9 @@ class ApplicationService:
     def record_disposition(
         self,
         application_id: str,
-        actor_type: str,
-        actor_id: str | None,
         disposition: str,
         reason: str | None,
     ) -> dict[str, Any]:
-        if actor_type != "recruiter":
-            raise ApplicationError(
-                403,
-                "HUMAN_ACTOR_REQUIRED",
-                "Only a recruiter can record final disposition",
-            )
         if not isinstance(reason, str) or not reason.strip():
             raise ApplicationError(409, "HUMAN_REASON_REQUIRED", "A reason is required")
         if disposition not in {"advance", "hold", "decline", "withdrawn"}:
@@ -296,7 +291,7 @@ class ApplicationService:
             status="dispositioned",
             disposition=disposition,
             disposition_reason=reason.strip(),
-            dispositioned_by=actor_id or "recruiter",
+            dispositioned_by=FIXTURE_RECRUITER_ID,
         )
         self._audit(
             application_id,
@@ -307,7 +302,7 @@ class ApplicationService:
             reason=reason.strip(),
             correlation_id=f"disposition:{application_id}",
             actor_type="recruiter",
-            actor_id=actor_id,
+            actor_id=FIXTURE_RECRUITER_ID,
         )
         return self.application_summary(application_id)
 

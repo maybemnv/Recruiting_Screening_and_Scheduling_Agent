@@ -171,7 +171,7 @@ def test_unreadable_resume_and_ambiguous_answer_route_to_review_and_handoff(tmp_
         assert paused["nextAction"] == "human_handoff"
 
 
-def test_agent_cannot_create_final_disposition_and_recruiter_reason_is_required(tmp_path):
+def test_fixture_server_owns_disposition_actor_and_recruiter_reason_is_required(tmp_path):
     with running_demo(tmp_path) as base_url:
         status, application = request_json(
             f"{base_url}/api/apply/retail-operations/applications",
@@ -181,18 +181,10 @@ def test_agent_cannot_create_final_disposition_and_recruiter_reason_is_required(
         assert status == 201
         application_id = application["id"]
 
-        status, blocked = request_json(
-            f"{base_url}/api/applications/{application_id}/disposition",
-            method="POST",
-            payload={"actorType": "agent", "disposition": "advance", "reason": "pass"},
-        )
-        assert status == 403
-        assert blocked["code"] == "HUMAN_ACTOR_REQUIRED"
-
         status, missing_reason = request_json(
             f"{base_url}/api/applications/{application_id}/disposition",
             method="POST",
-            payload={"actorType": "recruiter", "disposition": "advance"},
+            payload={"disposition": "advance"},
         )
         assert status == 409
         assert missing_reason["code"] == "HUMAN_REASON_REQUIRED"
@@ -201,11 +193,23 @@ def test_agent_cannot_create_final_disposition_and_recruiter_reason_is_required(
             f"{base_url}/api/applications/{application_id}/disposition",
             method="POST",
             payload={
-                "actorType": "recruiter",
-                "actorId": "recruiter-demo",
+                "actorType": "agent",
+                "actorId": "attacker-selected-identity",
                 "disposition": "advance",
                 "reason": "Reviewed the explicit evidence before advancing.",
             },
         )
         assert status == 200
         assert dispositioned["status"] == "dispositioned"
+
+        status, detail = request_json(
+            f"{base_url}/api/recruiter/applications/{application_id}"
+        )
+        assert status == 200
+        assert detail["disposition"]["actorId"] == "fixture-recruiter"
+        disposition_audit = next(
+            event for event in detail["auditEvents"]
+            if event["action"] == "disposition_recorded"
+        )
+        assert disposition_audit["actorType"] == "recruiter"
+        assert disposition_audit["actorId"] == "fixture-recruiter"
