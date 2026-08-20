@@ -1,85 +1,76 @@
 # Recruiting Screening and Scheduling Agent
 
-This checkout contains the fixture-first recruiting prototype from `PRD.md`: a
-local SQLite test double, a Supabase/PostgreSQL migration target, immutable job
-requirement versions, the seeded `retail-job-v1` fixture, a dependency-free
-HTTP API, and a static candidate / recruiter workbench.
+Fixture-first recruiting workflow for job requirements, candidate applications, evidence-based screening, recruiter review, interview scheduling, reminders, callbacks, and pipeline analytics.
 
-## Run locally
+## Project status
 
-Prerequisites are Python 3.11+ and a modern browser. Node.js 20+ is needed
-only for the Playwright verification suite. Fixture mode needs no credentials.
+The local slice is deterministic and SQLite-backed. A Supabase/PostgreSQL migration target and provider contracts are included, but authenticated workspace access, live ATS/calendar/messaging providers, retention controls, and production deployment remain unverified.
 
-```powershell
-python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
+## Architecture
+
+```mermaid
+graph LR
+    Candidate[Candidate workbench] --> API[HTTP API]
+    Recruiter[Recruiter workbench] --> API
+    API --> Store[SQLite fixture / Supabase target]
+    API --> Providers[Future ATS, calendar, SMS, email adapters]
 ```
 
-Then open:
+## Included capabilities
 
-- `http://127.0.0.1:8104/` (candidate and recruiter demo shell)
-- `http://127.0.0.1:8104/health`
-- `http://127.0.0.1:8104/api/recruiter/jobs`
-- `http://127.0.0.1:8104/api/apply/retail-operations`
-- `http://127.0.0.1:8104/api/recruiter/jobs/retail-job/requirements`
-- `POST /api/apply/{jobSlug}/applications`
-- `POST /api/applications/{applicationId}/screen`
-- `POST /api/applications/{applicationId}/answers`
-- `POST /api/applications/{applicationId}/opt-out`
-- `POST /api/applications/{applicationId}/reminders`
-- `GET /api/applications/{applicationId}/slots`
-- `POST /api/applications/{applicationId}/interviews`
-- `POST /api/applications/{applicationId}/reschedule`
-- `POST /api/integrations/calendar/callback`
-- `GET /api/recruiter/applications/{applicationId}`
-- `GET /api/recruiter/jobs/{jobId}/pipeline`
-- `GET /api/recruiter/jobs/{jobId}/pipeline?status=review|scheduled|missing_evidence|failed_work`
-- `GET /api/recruiter/jobs/{jobId}/analytics`
-- `GET /api/integrations/health`
-- `GET /api/apply/{jobSlug}/faqs`
+- Immutable job requirement versions and validation/publishing flow.
+- Candidate application, evidence capture, screening, correction, and rerun.
+- Recruiter review, human disposition, handoff, and pipeline filters.
+- Interview slot lookup, scheduling, rescheduling, reminders, and callbacks.
+- FAQ lookup, opt-out suppression, provider health, and deterministic replay.
+- Static candidate/recruiter workbench with keyboard and narrow-mobile coverage.
 
-Requirement mutation endpoints are available for the local recruiter flow:
+## Quick start
 
-- `POST /api/jobs/{jobId}/requirement-versions/validate`
-- `POST /api/jobs/{jobId}/requirement-versions`
-- `PUT /api/jobs/{jobId}/requirement-versions/{versionId}/criteria`
-- `POST /api/jobs/{jobId}/requirement-versions/{versionId}/validate`
-- `POST /api/jobs/{jobId}/requirement-versions/{versionId}/publish`
-- `GET /api/recruiter/jobs/{jobId}/requirements/history`
-
-The current provider mode is `fixture`: ATS, calendar, SMS, and email are not
-called. Set `RECRUITING_STORE_BACKEND=supabase` after applying
-`supabase/migrations/001_recruiting_demo.sql` and supplying the server-only
-variables in `.env.example`; the browser must never receive the Supabase
-service-role key. SQLite remains the credential-free deterministic test mode.
-The UI adapts the root design schema using the shared brand palette, type,
-spacing, visible focus, reduced motion, and explicit status/error states.
-
-The current application, screening, and scheduling slice is deterministic and
-SQLite-backed. It records candidate evidence, criterion evaluations,
-review/handoff work, human disposition reasons, interview state, confirmation
-messages, and provider callbacks. Supabase persistence and authenticated
-workspace access are the next integration boundary; no live provider secrets
-are required for the fixture demo. Candidate correction/rerun, approved FAQ
-lookup, opt-out reminder suppression, provider capability health, pipeline
-filters, and 500-application replay are also available in fixture mode.
-
-## Test
+Prerequisites: Python 3.11+, [`uv`](https://docs.astral.sh/uv/), and a modern browser. Node.js 20+ is needed for Playwright verification.
 
 ```powershell
-python -m pytest -q --basetemp .pytest-temp
+.\start-dev.ps1
+```
+
+The launcher creates the disposable `.local/demo.sqlite3`, resets the fixture, and starts the API at `http://127.0.0.1:8104/`.
+
+For the direct command:
+
+```powershell
+uv run python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
+```
+
+## Verification
+
+```powershell
+uv run pytest -q --basetemp .pytest-temp
 Set-Location web
 npm ci
 npx playwright install chromium
 npm run e2e
 ```
 
-The static UI has no compile/build step; `npm run e2e` is its frontend gate
-and covers the desktop story, keyboard operation, and the 320px candidate flow.
-Stop the local server with `Ctrl+C`. Repeat `--reset` only with an explicit
-`.local/*.sqlite3` path; it removes and reseeds that selected fixture database.
-
-Replay the deterministic PRD scale scenario without external providers:
+Replay the deterministic scale scenario:
 
 ```powershell
-python -m apps.api.replay --db .local/replay.sqlite3 --count 500
+uv run python -m apps.api.replay --db .local/replay.sqlite3 --count 500
 ```
+
+## Project structure
+
+```text
+apps/api/       HTTP API, local store, Supabase adapter, and replay runner
+web/             Static candidate and recruiter workbench
+supabase/        Production-target migration artifacts
+fixtures/        Deterministic recruiting data
+tests/            API, storage, provider, and browser verification
+```
+
+## Provider configuration
+
+Fixture mode calls no ATS, calendar, SMS, or email provider. Supabase mode requires applying [`supabase/migrations/001_recruiting_demo.sql`](supabase/migrations/001_recruiting_demo.sql) and supplying server-only variables from `.env.example`. Never expose the Supabase service-role key to the browser.
+
+## Production boundary
+
+Before live use, implement authenticated recruiter/candidate roles, workspace authorization and RLS, transactional multi-write operations, provider callback verification, candidate PII/resume retention and deletion, durable jobs, audit persistence, monitoring, backups, and recovery tests. SQLite `--reset` is disposable fixture behavior only.
