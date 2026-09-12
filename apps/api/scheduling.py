@@ -169,6 +169,40 @@ class SchedulingService:
         rows = [row for row in self.store.list_messages(application_id) if row["idempotency_key"] == key]
         return {"message": self._message_mapping(rows[0])}
 
+    def recover_reminder(self, application_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        application = self._application(application_id)
+        active = self.store.get_active_interview(application_id)
+        if active is None:
+            raise ApplicationError(409, "INTERVIEW_NOT_BOOKED", "Book an interview before recovering a reminder")
+        channel = self._channel(payload.get("channel", "sms"))
+        key = f"message:reminder:{active['id']}:{channel}"
+        work_item = self.store.get_work_item(key)
+        if work_item is None:
+            raise ApplicationError(404, "REMINDER_NOT_RETRYABLE", "No failed reminder is available for recovery")
+        if work_item["status"] == "recovered":
+            message = next(row for row in self.store.list_messages(application_id) if row["idempotency_key"] == key)
+            return {"message": self._message_mapping(message), "workItem": self.applications._work_item_mapping(work_item)}
+        if work_item["status"] != "retryable":
+            raise ApplicationError(409, "REMINDER_NOT_RETRYABLE", "Reminder is not available for recovery")
+        self._require_consent(application, channel)
+        if os.getenv("RECRUITING_DEMO_MESSAGING_MODE", "fixture") == "outage":
+            self.store.update_work_item(key, status="retryable", last_error_code="PROVIDER_DEGRADED", attempts=2)
+            raise ApplicationError(503, "PROVIDER_DEGRADED", "Messaging provider is unavailable")
+        self.store.insert_message(
+            f"message_{uuid4().hex[:16]}", application_id, active["id"], channel,
+            "interview-reminder:v1", self._recipient(application, channel), self._consent(application, channel),
+            "sent", "sent", key, attempts=2,
+        )
+        self.store.update_work_item(key, status="recovered", attempts=2)
+        recovered = self.store.get_work_item(key)
+        self.applications._audit(
+            application_id, application["requirement_version_id"], "reminder_recovered",
+            before_state={"status": "retryable"}, after_state={"status": "recovered"},
+            correlation_id=key, actor_type="recruiter", actor_id="fixture-recruiter", reason="fixture manual recovery",
+        )
+        message = next(row for row in self.store.list_messages(application_id) if row["idempotency_key"] == key)
+        return {"message": self._message_mapping(message), "workItem": self.applications._work_item_mapping(recovered)}
+
     def detail(self, application_id: str) -> dict[str, list[dict[str, Any]]]:
         self._application(application_id)
         return {

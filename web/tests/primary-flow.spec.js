@@ -97,3 +97,24 @@ test("candidate primary flow fits a 320px viewport without document overflow", a
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
   await expect(page.getByRole("button", { name: "Confirm interview slot" })).toBeVisible();
 });
+
+test("recruiter detail separates scorecard decisions and shows synthetic monitoring", async ({ page }) => {
+  await submitPassingCandidate(page);
+  await page.getByRole("tab", { name: "Recruiter" }).click();
+  await page.getByRole("button", { name: "Open evidence" }).last().click();
+  await expect(page.getByLabel("Candidate evidence detail")).toContainText("Automated results");
+  await expect(page.getByLabel("Candidate evidence detail")).toContainText("Human override: none recorded");
+  await expect(page.getByLabel("Candidate evidence detail")).toContainText("Final disposition: none recorded");
+  await expect(page.getByLabel("Recruiting funnel analytics")).toContainText("Synthetic monitoring");
+  await expect(page.getByLabel("Recruiting funnel analytics")).toContainText("fixture-reviewer");
+});
+
+test("recruiter detail hides fixture ATS retry after its one retry", async ({ page }) => {
+  await submitPassingCandidate(page);
+  await page.getByRole("tab", { name: "Recruiter" }).click();
+  await page.getByRole("button", { name: "Open evidence" }).last().click();
+  await page.getByRole("button", { name: "Create fixture ATS sync" }).click();
+  await page.getByRole("button", { name: "Retry ATS sync" }).click();
+  await expect(page.getByRole("button", { name: "Retry ATS sync" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Recover ATS sync" })).toBeVisible();
+});

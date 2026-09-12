@@ -158,6 +158,21 @@ class SQLiteStore:
                 payload TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS monitoring_alerts (
+                id TEXT PRIMARY KEY,
+                job_id TEXT NOT NULL REFERENCES jobs(id),
+                segment TEXT NOT NULL,
+                numerator INTEGER NOT NULL,
+                denominator INTEGER NOT NULL,
+                missing_count INTEGER NOT NULL,
+                limitation TEXT NOT NULL,
+                owner_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                note TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
         self.connection.commit()
@@ -327,6 +342,7 @@ class SQLiteStore:
         application_id: str,
         *,
         status: str | None = None,
+        requirement_version_id: str | None = None,
         consent: dict[str, str] | None = None,
         disposition: str | None = None,
         disposition_reason: str | None = None,
@@ -336,6 +352,7 @@ class SQLiteStore:
         values: list[Any] = []
         for column, value in (
             ("status", status),
+            ("requirement_version_id", requirement_version_id),
             ("consent", json.dumps(consent, sort_keys=True) if consent is not None else None),
             ("disposition", disposition),
             ("disposition_reason", disposition_reason),
@@ -474,6 +491,12 @@ class SQLiteStore:
                     (application_id,),
                 ).fetchall()
             )
+
+    def get_work_item(self, idempotency_key: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self.connection.execute(
+                "SELECT * FROM work_items WHERE idempotency_key = ?", (idempotency_key,)
+            ).fetchone()
 
     def update_work_item(
         self,
@@ -689,3 +712,50 @@ class SQLiteStore:
             )
             self.connection.commit()
             return cursor.rowcount == 1
+
+    def ensure_monitoring_alert(
+        self, alert_id: str, job_id: str, denominator: int, missing_count: int
+    ) -> sqlite3.Row:
+        with self._lock:
+            self.connection.execute(
+                "INSERT OR IGNORE INTO monitoring_alerts "
+                "(id, job_id, segment, numerator, denominator, missing_count, limitation, owner_id, status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
+                (
+                    alert_id,
+                    job_id,
+                    "synthetic fixture segment",
+                    missing_count,
+                    denominator,
+                    missing_count,
+                    "Synthetic fixture values are incomplete and do not support a legal or adverse-impact conclusion.",
+                    "fixture-reviewer",
+                ),
+            )
+            self.connection.commit()
+            return self.connection.execute(
+                "SELECT * FROM monitoring_alerts WHERE id = ?", (alert_id,)
+            ).fetchone()
+
+    def get_monitoring_alert(self, alert_id: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self.connection.execute(
+                "SELECT * FROM monitoring_alerts WHERE id = ?", (alert_id,)
+            ).fetchone()
+
+    def list_monitoring_alerts(self, job_id: str) -> list[sqlite3.Row]:
+        with self._lock:
+            return list(
+                self.connection.execute(
+                    "SELECT * FROM monitoring_alerts WHERE job_id = ? ORDER BY created_at, id",
+                    (job_id,),
+                ).fetchall()
+            )
+
+    def update_monitoring_alert(self, alert_id: str, status: str, note: str) -> None:
+        with self._lock:
+            self.connection.execute(
+                "UPDATE monitoring_alerts SET status = ?, note = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (status, note, alert_id),
+            )
+            self.connection.commit()

@@ -110,6 +110,8 @@ The product is intentionally not an opaque hiring engine. A recruiter authors an
 - **Duplicate calendar callback:** the idempotency key and provider event identity reconcile the callback without creating a second active interview.
 - **Provider or worker failure:** local state remains visible, a bounded retry is attempted when safe, and exhausted work becomes a recruiter or administrator task.
 - **Inaccessible step or human request:** the candidate gets a manual-entry or handoff path, and automated screening pauses.
+- **Local fixture recovery:** reminder and ATS fixture failures remain visible as retryable or `sync_pending` work, recover through an auditable local control, and never invoke a live provider.
+- **Synthetic monitoring:** deterministic fixture counts show their denominator, missingness, owner, and limitation; they never change screening or establish a legal/adverse-impact conclusion.
 
 ### Numeric success metrics
 

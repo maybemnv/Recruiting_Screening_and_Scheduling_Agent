@@ -68,3 +68,16 @@ There is no static-UI compile step. The browser gate exercises desktop,
 keyboard-visible actions/tab navigation, and the 320px candidate flow. After
 the walkthrough, use `Ctrl+C` in the server terminal and confirm port 8104 is
 no longer listening before deleting any disposable `.local` fixture manually.
+# Local fixture completion controls
+
+## Reminder recovery
+
+In fixture mode, a reminder messaging outage creates a visible `send_message` work item with status `retryable`. Restore `RECRUITING_DEMO_MESSAGING_MODE=fixture`, then use the recruiter detail’s **Recover reminder** control. The recovery sends one idempotent reminder, marks the work item `recovered`, increments its attempt count, and appends a `reminder_recovered` audit event. Repeating the control returns the same recorded message.
+
+## Fixture ATS recovery
+
+The recruiter detail’s **Create fixture ATS sync** control creates a visible `ats_sync` work item with status `sync_pending`; it makes no provider request. **Retry ATS sync** records one bounded fixture retry while it remains pending. **Recover ATS sync** changes it to `synced` and appends `fixture_ats_sync_recovered`. A completed recovery is replay-safe.
+
+## Synthetic monitoring
+
+Recruiter analytics labels monitoring data as synthetic and shows its denominator, missingness, owner, and limitation. The fixed owner is `fixture-reviewer`. Use the fixture alert controls to record an investigation or resolution note. These values never feed screening, rank a candidate, or support a legal/adverse-impact conclusion.

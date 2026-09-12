@@ -97,22 +97,31 @@ const loadPipeline = async () => {
 const recordList = (title, records, describe) => `<section class="record-group"><h4>${escapeHtml(title)} (${records.length})</h4>
   <ul class="detail-records">${records.map((record) => `<li>${describe(record)}</li>`).join("") || "<li>None recorded.</li>"}</ul></section>`;
 
-const renderAnalytics = (analytics) => {
+const renderAnalytics = (analytics, monitoring) => {
   const stages = Object.entries(analytics.stages).map(([stage, count]) => `<li><span>${escapeHtml(stage)}</span><strong>${escapeHtml(count)}</strong></li>`).join("");
+  const alerts = monitoring.alerts.map((alert) => `<li><strong>${escapeHtml(alert.status)}</strong> · ${escapeHtml(alert.ownerId)} · ${escapeHtml(alert.segment)}<br><small>${escapeHtml(alert.limitation)}</small>${alert.status === "open" ? `<button class="button compact-button" type="button" data-monitoring-action="investigate" data-alert-id="${escapeHtml(alert.id)}">Investigate synthetic alert</button>` : ""}${alert.status !== "resolved" ? `<button class="button compact-button" type="button" data-monitoring-action="resolve" data-alert-id="${escapeHtml(alert.id)}">Resolve synthetic alert</button>` : ""}</li>`).join("");
   document.querySelector("#recruiter-analytics").innerHTML = `<h3>Funnel analytics</h3>
     <p class="small-copy">${escapeHtml(analytics.denominator)} fixture application(s) · denominator: all applications</p>
-    <ul class="result-list">${stages}<li><span>Human-recorded final dispositions</span><strong>${escapeHtml(analytics.finalDisposition.humanRecorded)}</strong></li></ul>`;
+    <ul class="result-list">${stages}<li><span>Human-recorded final dispositions</span><strong>${escapeHtml(analytics.finalDisposition.humanRecorded)}</strong></li></ul>
+    <section class="record-group"><h4>Synthetic monitoring</h4><p class="small-copy">${escapeHtml(monitoring.denominator)} applications · missingness: ${escapeHtml(monitoring.missingness.applicationsWithoutEvaluation)}</p><ul class="detail-records">${alerts}</ul></section>`;
 };
 
 const loadAnalytics = async () => {
-  renderAnalytics(await json("/api/recruiter/jobs/retail-job/analytics"));
+  const [analytics, monitoring] = await Promise.all([json("/api/recruiter/jobs/retail-job/analytics"), json("/api/recruiter/jobs/retail-job/monitoring")]);
+  renderAnalytics(analytics, monitoring);
 };
 
 const renderDetail = (detail) => {
   const panel = document.querySelector("#recruiter-detail");
   state.recruiterApplicationId = detail.id;
   panel.classList.remove("is-hidden");
+  const scorecard = detail.scorecard;
+  const atsSync = detail.workItems.find((item) => item.kind === "ats_sync");
+  const reminder = detail.workItems.find((item) => item.kind === "send_message" && item.status === "retryable");
+  const reminderControl = reminder ? `<button class="button compact-button" type="button" data-fixture-action="reminder-recovery">Recover reminder</button>` : "";
+  const scorecardSection = `<section class="record-group"><h4>Automated results</h4><ul class="detail-records">${scorecard.automatedResults.map((item) => `<li><strong>${escapeHtml(item.criterionId)}</strong>: ${escapeHtml(item.result)}</li>`).join("")}</ul><h4>Human override</h4><p>${scorecard.humanOverride ? escapeHtml(scorecard.humanOverride.reason) : "Human override: none recorded"}</p><h4>Final disposition</h4><p>${scorecard.finalDisposition ? escapeHtml(scorecard.finalDisposition.value) : "Final disposition: none recorded"}</p><h4>Fixture recovery controls</h4><button class="button compact-button" type="button" data-fixture-action="ats-sync">Create fixture ATS sync</button>${atsSync?.status === "sync_pending" ? `${atsSync.attempts < 1 ? `<button class="button compact-button" type="button" data-fixture-action="ats-retry">Retry ATS sync</button>` : ""}<button class="button compact-button" type="button" data-fixture-action="ats-recover">Recover ATS sync</button>` : ""}<p class="small-copy">Fixture-only controls. No live ATS, SMS, email, or calendar provider is contacted.</p></section>`;
   panel.innerHTML = `<h3>${escapeHtml(detail.contact?.name || "Candidate")} / evidence</h3>
+    ${scorecardSection}${reminderControl}
     <p class="small-copy">${escapeHtml(detail.status)} · ${escapeHtml(detail.requirementVersionId)} · ${detail.evidence.length} evidence records · ${detail.interviews.length} interview records · ${detail.messages.length} message records</p>
     ${recordList("Evaluations", detail.evaluations, (item) => `<strong>${escapeHtml(item.criterionId)}</strong>: ${escapeHtml(item.result)} — ${escapeHtml(item.explanation)}`)}
     ${recordList("Evidence", detail.evidence, (item) => `<strong>${escapeHtml(item.criterionId || item.source)}</strong>: ${escapeHtml(JSON.stringify(item.value))} (${escapeHtml(item.extractionStatus)})`)}
@@ -257,6 +266,32 @@ document.querySelector("#recruiter-detail").addEventListener("submit", async (ev
     renderDetail(await json(`/api/recruiter/applications/${state.recruiterApplicationId}`));
     await Promise.all([loadPipeline(), loadAnalytics()]);
     document.querySelector("#recruiter-status").textContent = "Human disposition recorded.";
+  } catch (error) {
+    document.querySelector("#recruiter-status").textContent = error.message;
+  }
+});
+
+document.querySelector("#recruiter-detail").addEventListener("click", async (event) => {
+  const action = event.target.closest("[data-fixture-action]")?.dataset.fixtureAction;
+  if (!action) return;
+  try {
+    const endpoint = action === "reminder-recovery" ? `/api/applications/${state.recruiterApplicationId}/reminder-recovery` : `/api/applications/${state.recruiterApplicationId}/ats-sync`;
+    const payload = action === "reminder-recovery" ? { channel: "sms" } : { retry: action === "ats-retry", recover: action === "ats-recover" };
+    await json(endpoint, { method: "POST", body: JSON.stringify(payload) });
+    renderDetail(await json(`/api/recruiter/applications/${state.recruiterApplicationId}`));
+    document.querySelector("#recruiter-status").textContent = "Fixture ATS state recorded.";
+  } catch (error) {
+    document.querySelector("#recruiter-status").textContent = error.message;
+  }
+});
+
+document.querySelector("#recruiter-analytics").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-monitoring-action]");
+  if (!button) return;
+  try {
+    await json(`/api/recruiter/jobs/retail-job/monitoring/${button.dataset.alertId}`, { method: "POST", body: JSON.stringify({ action: button.dataset.monitoringAction, note: "Fixture reviewer action." }) });
+    await loadAnalytics();
+    document.querySelector("#recruiter-status").textContent = "Synthetic monitoring alert updated.";
   } catch (error) {
     document.querySelector("#recruiter-status").textContent = error.message;
   }

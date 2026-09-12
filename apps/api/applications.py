@@ -11,6 +11,7 @@ from .requirements import Criterion, RequirementService
 
 
 FIXTURE_RECRUITER_ID = "fixture-recruiter"
+FIXTURE_REVIEWER_ID = "fixture-reviewer"
 
 
 APPROVED_FAQS: tuple[dict[str, str], ...] = (
@@ -166,14 +167,20 @@ class ApplicationService:
         force_rerun: bool = False,
     ) -> dict[str, Any]:
         application = self._get_application(application_id)
-        version = self.requirements.get_version(application["requirement_version_id"])
         existing = self.store.list_evaluations(application_id)
         if application["status"] == "human_handoff":
             return self.screening_response(application, existing)
         if existing and not force_rerun:
             return self.screening_response(application, existing)
-        if force_rerun and existing:
-            self.store.delete_evaluations(application_id)
+        if force_rerun:
+            version = self.requirements.get_published_version(application["job_id"])
+            if existing:
+                self.store.delete_evaluations(application_id)
+            if application["requirement_version_id"] != version.id:
+                self.store.update_application(application_id, requirement_version_id=version.id)
+                application = self._get_application(application_id)
+        else:
+            version = self.requirements.get_version(application["requirement_version_id"])
 
         evidence = self.store.list_evidence(application_id)
         by_criterion: dict[str, list[Mapping[str, Any]]] = {}
@@ -380,6 +387,7 @@ class ApplicationService:
                 self._audit_mapping(item)
                 for item in self.store.list_audit_events("application", application_id)
             ],
+            "scorecard": self.scorecard(application_id),
         }
         if self.scheduler is not None:
             detail.update(self.scheduler.detail(application_id))
@@ -460,6 +468,92 @@ class ApplicationService:
                 "automated": 0,
             },
         }
+
+    def scorecard(self, application_id: str) -> dict[str, Any]:
+        application = self._get_application(application_id)
+        overrides = [
+            self._audit_mapping(item)
+            for item in self.store.list_audit_events("application", application_id)
+            if item["action"] == "override_recorded"
+        ]
+        return {
+            "applicationId": application_id,
+            "requirementVersionId": application["requirement_version_id"],
+            "automatedResults": [self._evaluation_mapping(item) for item in self.store.list_evaluations(application_id)],
+            "humanOverride": overrides[-1] if overrides else None,
+            "finalDisposition": self._serialize_application(application).get("disposition"),
+        }
+
+    def ats_sync(self, application_id: str, retry: bool = False, recover: bool = False) -> dict[str, Any]:
+        application = self._get_application(application_id)
+        key = f"ats-sync:{application_id}"
+        work_item = self.store.get_work_item(key)
+        if work_item is None:
+            self.store.insert_work_item(
+                self._id("work"), application_id, "ats_sync", key,
+                "Fixture ATS has no live provider; recruiter action is required.",
+                status="sync_pending", last_error_code="FIXTURE_ATS_PENDING",
+            )
+            work_item = self.store.get_work_item(key)
+            self._audit(
+                application_id, application["requirement_version_id"], "fixture_ats_sync_pending",
+                before_state=None, after_state={"status": "sync_pending"}, correlation_id=key,
+                actor_type="system", reason="fixture ATS boundary",
+            )
+        elif recover and work_item["status"] == "sync_pending":
+            attempts = int(work_item["attempts"]) + 1
+            self.store.update_work_item(key, status="synced", attempts=attempts)
+            self._audit(
+                application_id, application["requirement_version_id"], "fixture_ats_sync_recovered",
+                before_state={"status": "sync_pending"}, after_state={"status": "synced"}, correlation_id=key,
+                actor_type="recruiter", actor_id=FIXTURE_RECRUITER_ID, reason="fixture manual recovery",
+            )
+            work_item = self.store.get_work_item(key)
+        elif retry and work_item["status"] == "sync_pending":
+            if int(work_item["attempts"]) >= 1:
+                raise ApplicationError(409, "FIXTURE_ATS_RETRY_LIMIT", "Fixture ATS sync allows one retry before recovery")
+            attempts = int(work_item["attempts"]) + 1
+            self.store.update_work_item(key, status="sync_pending", last_error_code="FIXTURE_ATS_PENDING", attempts=attempts)
+            self._audit(
+                application_id, application["requirement_version_id"], "fixture_ats_sync_retried",
+                before_state={"status": "sync_pending"}, after_state={"status": "sync_pending", "attempts": attempts}, correlation_id=key,
+                actor_type="recruiter", actor_id=FIXTURE_RECRUITER_ID, reason="fixture retry",
+            )
+            work_item = self.store.get_work_item(key)
+        return {"sync": self._work_item_mapping(work_item)}
+
+    def monitoring(self, job_id: str) -> dict[str, Any]:
+        rows = self.store.list_applications(job_id)
+        missing_count = sum(1 for row in rows if not self.store.list_evaluations(row["id"]))
+        self.store.ensure_monitoring_alert(
+            f"fixture-monitoring:{job_id}:missingness", job_id, len(rows), missing_count
+        )
+        return {
+            "jobId": job_id,
+            "synthetic": True,
+            "denominator": len(rows),
+            "missingness": {"applicationsWithoutEvaluation": missing_count},
+            "limitations": "Synthetic fixture values are incomplete and do not support a legal or adverse-impact conclusion.",
+            "alerts": [self._monitoring_alert_mapping(row) for row in self.store.list_monitoring_alerts(job_id)],
+        }
+
+    def update_monitoring_alert(self, job_id: str, alert_id: str, action: Any, note: Any) -> dict[str, Any]:
+        if action not in {"investigate", "resolve"} or not isinstance(note, str) or not note.strip():
+            raise ApplicationError(422, "INVALID_MONITORING_ACTION", "A supported action and review note are required")
+        alert = self.store.get_monitoring_alert(alert_id)
+        if alert is None or alert["job_id"] != job_id:
+            raise ApplicationError(404, "NOT_FOUND", "Unknown monitoring alert")
+        status = "investigating" if action == "investigate" else "resolved"
+        if alert["status"] == status:
+            return {"alert": self._monitoring_alert_mapping(alert)}
+        self.store.update_monitoring_alert(alert_id, status, note.strip())
+        updated = self.store.get_monitoring_alert(alert_id)
+        self.store.insert_audit_event(
+            self._id("audit"), "reviewer", FIXTURE_REVIEWER_ID, f"monitoring_alert_{status}",
+            "monitoring_alert", alert_id, {"status": alert["status"]}, {"status": status}, note.strip(),
+            f"monitoring:{alert_id}:{status}", "synthetic-fixture",
+        )
+        return {"alert": self._monitoring_alert_mapping(updated)}
 
     def screening_response(
         self, application: Mapping[str, Any], evaluations: list[Mapping[str, Any]]
@@ -701,6 +795,15 @@ class ApplicationService:
             "reason": row["reason"],
             "createdAt": row["created_at"],
             "updatedAt": row["updated_at"],
+        }
+
+    @staticmethod
+    def _monitoring_alert_mapping(row: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            "id": row["id"], "segment": row["segment"], "numerator": row["numerator"],
+            "denominator": row["denominator"], "missingCount": row["missing_count"],
+            "limitation": row["limitation"], "ownerId": row["owner_id"], "status": row["status"],
+            "note": row["note"],
         }
 
     def _audit_mapping(self, row: Mapping[str, Any]) -> dict[str, Any]:
