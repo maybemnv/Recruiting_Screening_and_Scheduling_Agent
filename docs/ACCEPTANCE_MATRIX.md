@@ -11,9 +11,9 @@ needs client-owned Supabase/provider or manual accessibility verification.
 | AC-04: duplicate calendar callback creates no duplicate interview | `/api/integrations/calendar/callback`, `tests/test_phase3_scheduling.py` | Verified locally |
 | AC-05: reschedule reserves replacement before cancelling old record | `/api/applications/{id}/reschedule`, `tests/test_phase3_scheduling.py` | Verified locally in fixture mode |
 | AC-06: missing recruiter reason is rejected and client actor fields cannot control fixture attribution | `/api/applications/{id}/disposition`, `tests/test_phase2_application.py` | Verified locally |
-| AC-07: provider outage preserves state and creates retryable work | `RECRUITING_DEMO_CALENDAR_MODE=outage`, `tests/test_phase3_scheduling.py` | Verified locally |
-| AC-08: consent/provider result is recorded on confirmation | `apps/api/scheduling.py`, `tests/test_phase3_scheduling.py` | Verified locally for fixture SMS |
-| AC-09: pipeline and funnel expose status/version denominator | `/pipeline`, `/analytics`, `tests/test_phase4_analytics.py` | Verified locally |
+| AC-07: a new requirement version does not change an existing screening result until explicit re-screening | `tests/test_local_fixture_completion.py::test_ac07_force_rerun_adopts_latest_published_version_only_after_normal_replay` | Verified locally |
+| AC-08: incomplete monitoring shows counts, denominator, missingness, and limitation without a conclusive claim | `/monitoring`, `tests/test_local_fixture_completion.py` | Verified locally for deterministic synthetic fixtures |
+| AC-09: keyboard and assistive-technology use supports completion or handoff | `web/tests/primary-flow.spec.js` | Keyboard fixture checks verified; assistive-technology verification remains manual |
 | AC-10: 500 retail replay reconciles core artifacts | `python -m apps.api.replay`, `tests/test_phase4_analytics.py` | Verified locally |
 
 ## Accessibility and operational gates

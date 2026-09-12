@@ -220,6 +220,7 @@ class SupabaseStore:
         application_id: str,
         *,
         status: str | None = None,
+        requirement_version_id: str | None = None,
         consent: dict[str, str] | None = None,
         disposition: str | None = None,
         disposition_reason: str | None = None,
@@ -228,6 +229,7 @@ class SupabaseStore:
         payload: dict[str, Any] = {}
         for key, value in (
             ("status", status),
+            ("requirement_version_id", requirement_version_id),
             ("consent", consent),
             ("disposition", disposition),
             ("disposition_reason", disposition_reason),

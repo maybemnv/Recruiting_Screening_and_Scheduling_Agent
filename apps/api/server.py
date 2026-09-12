@@ -231,6 +231,9 @@ def create_demo_server(
                 application_detail_prefix = "/api/recruiter/applications/"
                 if path.startswith(application_detail_prefix):
                     application_id = path[len(application_detail_prefix) :]
+                    if application_id.endswith("/scorecard"):
+                        self._json(200, applications.scorecard(application_id[: -len("/scorecard")]))
+                        return
                     self._json(
                         200,
                         {
@@ -247,6 +250,11 @@ def create_demo_server(
                     return
 
                 recruiter_prefix = "/api/recruiter/jobs/"
+                monitoring_marker = "/monitoring"
+                if path.startswith(recruiter_prefix) and path.endswith(monitoring_marker):
+                    job_id = path[len(recruiter_prefix) : -len(monitoring_marker)]
+                    self._json(200, applications.monitoring(job_id))
+                    return
                 analytics_suffix = "/analytics"
                 if path.startswith(recruiter_prefix) and path.endswith(analytics_suffix):
                     job_id = path[len(recruiter_prefix) : -len(analytics_suffix)]
@@ -395,6 +403,13 @@ def create_demo_server(
                     if action == "reminders":
                         self._json(200, scheduling.reminder(application_id, payload))
                         return
+                    if action == "reminder-recovery":
+                        self._json(200, scheduling.recover_reminder(application_id, payload))
+                        return
+                    if action == "ats-sync":
+                        result = applications.ats_sync(application_id, bool(payload.get("retry")), bool(payload.get("recover")))
+                        self._json(200 if result["sync"]["status"] == "synced" else 202, result)
+                        return
                     if action == "opt-out":
                         channel = payload.get("channel")
                         if not isinstance(channel, str):
@@ -424,6 +439,14 @@ def create_demo_server(
 
                 if path == "/api/integrations/calendar/callback":
                     self._json(200, scheduling.reconcile_callback(self._read_json()))
+                    return
+
+                monitoring_prefix = "/api/recruiter/jobs/"
+                if path.startswith(monitoring_prefix) and "/monitoring/" in path:
+                    remainder = path[len(monitoring_prefix) :]
+                    job_id, _, alert_id = remainder.partition("/monitoring/")
+                    payload = self._read_json()
+                    self._json(200, applications.update_monitoring_alert(job_id, alert_id, payload.get("action"), payload.get("note")))
                     return
 
                 collection_validate = "/api/jobs/"

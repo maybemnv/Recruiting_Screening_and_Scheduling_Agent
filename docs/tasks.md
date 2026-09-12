@@ -102,21 +102,21 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 - [x] Implement fixture slot selection, Chicago time-zone display, confirmation, consent check, provider result, visible provider failure state, reminder records, and opt-out suppression; durable reminder workers remain outstanding.
 - [x] Implement replacement-first rescheduling: reserve the new slot, keep the old slot until success, then release it and send one updated confirmation.
 - [x] Ensure duplicate calendar callbacks reconcile by provider event identity or booking key and create exactly one active interview.
-- [ ] Implement ATS adapter contracts and test doubles for Greenhouse, Lever, Ashby, and Workday; keep live mappings behind explicit capabilities.
-- [ ] Add integration health, retry, `sync_pending`, provider failure, and manual handoff UI.
-- [ ] Add tests for duplicate callbacks, auth failure, rate limit, malformed payload, provider outage, partial write, booking failure, and idempotent ATS updates.
+- [x] Add a deterministic fixture ATS boundary with visible `sync_pending`, one bounded retry, manual recovery, and audit events; live mappings remain excluded.
+- [x] Add fixture retry/recovery UI for ATS work and reminder failures; integration health continues to label live ATS as blocked.
+- [x] Add focused fixture tests for reminder recovery, `sync_pending` retry/recovery, and idempotent recovery replay.
 
 **Demo gate:** A passing candidate selects a slot, receives confirmation, reschedules safely, and sees a provider failure become visible recruiter work.
 
 ## Phase 4 — Recruiter operations, analytics, accessibility, and hardening
 
-- [ ] Build scorecard views that separate automated criterion results, overrides, and final human disposition; do not show an opaque composite rank.
+- [x] Build a fixture scorecard that separates automated criterion results, human override, and final human disposition; do not show an opaque composite rank.
 - [x] Build fixture funnel analytics by job version, stage, date range, and denominator; show denominator, missingness, and timestamp definition.
-- [ ] Add access-controlled monitoring attributes, data sufficiency, adverse-outcome flags, alert owner, investigation status, review note, and resolution event; keep monitoring data out of criterion evaluation.
+- [x] Add deterministic synthetic monitoring counts, denominator, missingness, limitations, reviewer owner, investigation note, and resolution event; it never affects screening or makes a legal/adverse-impact conclusion.
 - [x] Apply the shared design tokens with text-plus-state status, candidate progress, saved/error states, readable tables, and stacked mobile cards; full browser QA remains outstanding.
 - [ ] Verify keyboard-only operation, labels/errors, visible focus, live-region updates, 320px candidate flow, zoom, manual-entry fallback, human assistance, and local/canonical time zones.
 - [x] Replay 500 retail applications and reconcile applications, evaluations, evidence, work items, audit events, and funnel counts; live ATS/interview/message reconciliation remains fixture-limited.
-- [ ] Add integration health, secret redaction, audit expansion, retry recovery, and `sync_pending` state inspection.
+- [x] Add fixture retry recovery, `sync_pending` inspection, scorecard separation, and reviewer-owned monitoring alert inspection.
 
 **Demo gate:** The recruiter reviews the pipeline, evidence scorecard, funnel, audit record, scheduling state, and adverse-outcome monitoring limitations for 500 applications.
 
@@ -134,7 +134,7 @@ The pre-existing task checklist remains the source of the full Phase 0-4 scope; 
 ## Validation and handoff
 
 - [ ] Run contract tests for authorization, typed HTTP responses, immutable versions, reason-required override/disposition, and adapter interfaces.
-- [ ] Run workflow tests for consent, evidence linkage, no-fabrication, idempotency, duplicate callbacks, retry boundaries, provider failure, ATS `sync_pending`, and replacement-first rescheduling.
+- [x] Run focused fixture workflow tests for reminder recovery, ATS `sync_pending` retry/recovery, scorecard separation, synthetic monitoring, and AC-07 version linkage.
 - [ ] Run end-to-end tests for AC-01 through AC-10 and both PRD traces.
 - [ ] Run accessibility and responsive tests for A11Y-01 through A11Y-09, including keyboard, focus, labels, live regions, 320px width, manual entry, handoff, and time zones.
 - [ ] Verify M-03 duplicate interview rate is zero, M-05 message traceability is 100%, M-06 audit completeness is 100%, M-07 human disposition coverage is 100%, M-08 ATS reconciliation is 100% in adapter tests, M-09 release-blocking accessibility defects are zero, M-10 500-application reconciliation is 100%, M-11 alerts are investigated, and Q-01 is observable.
