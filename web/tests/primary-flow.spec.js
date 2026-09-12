@@ -118,3 +118,21 @@ test("recruiter detail hides fixture ATS retry after its one retry", async ({ pa
   await expect(page.getByRole("button", { name: "Retry ATS sync" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Recover ATS sync" })).toBeVisible();
 });
+
+test("recruiter detail only offers reminder recovery for reminder work items", async ({ page }) => {
+  await page.route("**/api/recruiter/applications/*", async (route) => {
+    const response = await route.fetch();
+    const detail = await response.json();
+    detail.workItems = [{
+      kind: "send_message",
+      status: "retryable",
+      idempotencyKey: "message:confirmation:interview-1:sms",
+      attempts: 1,
+    }];
+    await route.fulfill({ response, json: detail });
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Recruiter" }).click();
+  await page.getByRole("button", { name: "Open evidence" }).last().click();
+  await expect(page.getByRole("button", { name: "Recover reminder" })).toHaveCount(0);
+});

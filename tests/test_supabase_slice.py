@@ -89,3 +89,18 @@ def test_supabase_migration_defines_requirement_tables_and_fail_closed_rls():
         assert f"alter table public.{table} enable row level security" in migration.lower()
 
     assert "no anon/authenticated policies" in migration.lower()
+
+
+def test_supabase_update_application_accepts_requirement_version_for_rerun(monkeypatch):
+    captured = {}
+    store = SupabaseStore("https://demo.supabase.co/rest/v1", "server-only")
+
+    def fake_request(method, table, *, query=None, payload=None, prefer=None):
+        captured.update(method=method, table=table, query=query, payload=payload, prefer=prefer)
+        return []
+
+    monkeypatch.setattr(store, "_request", fake_request)
+    store.update_application("application-1", requirement_version_id="retail-job-v2")
+
+    assert captured["payload"]["requirement_version_id"] == "retail-job-v2"
+    assert captured["query"] == {"id": "eq.application-1"}

@@ -128,6 +128,30 @@ def test_scorecard_and_synthetic_monitoring_keep_human_decisions_separate(tmp_pa
         assert resolved["alert"]["status"] == "resolved"
 
 
+def test_monitoring_refresh_updates_population_without_resetting_review_state(tmp_path):
+    with running_demo(tmp_path) as base_url:
+        ready_application(base_url)
+        status, first = request_json(f"{base_url}/api/recruiter/jobs/retail-job/monitoring")
+        assert status == 200
+        alert = first["alerts"][0]
+        status, investigated = request_json(
+            f"{base_url}/api/recruiter/jobs/retail-job/monitoring/{alert['id']}",
+            "POST",
+            {"action": "investigate", "note": "Review in progress."},
+        )
+        assert status == 200
+        assert investigated["alert"]["status"] == "investigating"
+
+        ready_application(base_url)
+        status, refreshed = request_json(f"{base_url}/api/recruiter/jobs/retail-job/monitoring")
+        assert status == 200
+        assert refreshed["denominator"] == 2
+        refreshed_alert = refreshed["alerts"][0]
+        assert refreshed_alert["denominator"] == 2
+        assert refreshed_alert["status"] == "investigating"
+        assert refreshed_alert["note"] == "Review in progress."
+
+
 def test_ac07_force_rerun_adopts_latest_published_version_only_after_normal_replay(tmp_path):
     with running_demo(tmp_path) as base_url:
         application_id = ready_application(base_url)

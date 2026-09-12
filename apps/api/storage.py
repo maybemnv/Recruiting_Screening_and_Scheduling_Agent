@@ -718,9 +718,12 @@ class SQLiteStore:
     ) -> sqlite3.Row:
         with self._lock:
             self.connection.execute(
-                "INSERT OR IGNORE INTO monitoring_alerts "
+                "INSERT INTO monitoring_alerts "
                 "(id, job_id, segment, numerator, denominator, missing_count, limitation, owner_id, status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open') "
+                "ON CONFLICT(id) DO UPDATE SET numerator = excluded.numerator, "
+                "denominator = excluded.denominator, missing_count = excluded.missing_count, "
+                "updated_at = CURRENT_TIMESTAMP",
                 (
                     alert_id,
                     job_id,

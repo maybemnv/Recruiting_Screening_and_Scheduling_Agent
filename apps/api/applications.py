@@ -174,11 +174,11 @@ class ApplicationService:
             return self.screening_response(application, existing)
         if force_rerun:
             version = self.requirements.get_published_version(application["job_id"])
-            if existing:
-                self.store.delete_evaluations(application_id)
             if application["requirement_version_id"] != version.id:
                 self.store.update_application(application_id, requirement_version_id=version.id)
                 application = self._get_application(application_id)
+            if existing:
+                self.store.delete_evaluations(application_id)
         else:
             version = self.requirements.get_version(application["requirement_version_id"])
 
