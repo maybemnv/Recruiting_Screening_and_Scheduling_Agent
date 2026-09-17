@@ -44,3 +44,15 @@ def test_fixture_backend_is_rejected_outside_local_fixture(monkeypatch):
 
     with pytest.raises(ConfigurationError, match="local-fixture"):
         BackendConfig.from_environment()
+
+
+def test_production_requires_server_side_auth_token(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("RECRUITING_STORE_BACKEND", "supabase")
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "server-secret")
+    monkeypatch.setenv("RECRUITING_RESUME_STORAGE", "s3")
+    monkeypatch.delenv("RECRUITING_AUTH_BEARER_TOKEN", raising=False)
+
+    with pytest.raises(ConfigurationError, match="RECRUITING_AUTH_BEARER_TOKEN"):
+        BackendConfig.from_environment()

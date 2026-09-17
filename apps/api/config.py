@@ -22,6 +22,7 @@ class BackendConfig:
     calendar_mode: str = "fixture"
     messaging_mode: str = "fixture"
     resume_storage_backend: str = "local"
+    auth_bearer_token: str | None = field(default=None, repr=False)
 
     @classmethod
     def from_environment(cls) -> "BackendConfig":
@@ -55,8 +56,11 @@ class BackendConfig:
         calendar_mode = os.getenv("RECRUITING_DEMO_CALENDAR_MODE", "fixture").strip().lower()
         messaging_mode = os.getenv("RECRUITING_DEMO_MESSAGING_MODE", "fixture").strip().lower()
         resume_storage_backend = os.getenv("RECRUITING_RESUME_STORAGE", "local").strip().lower()
+        auth_bearer_token = os.getenv("RECRUITING_AUTH_BEARER_TOKEN", "").strip() or None
         if resume_storage_backend not in {"local", "s3"}:
             raise ConfigurationError("RECRUITING_RESUME_STORAGE must be 'local' or 's3'")
+        if app_env != "local-fixture" and auth_bearer_token is None:
+            raise ConfigurationError("RECRUITING_AUTH_BEARER_TOKEN is required outside APP_ENV=local-fixture")
         if calendar_mode not in {"fixture", "outage"}:
             raise ConfigurationError("RECRUITING_DEMO_CALENDAR_MODE must be 'fixture' or 'outage'")
         if messaging_mode not in {"fixture", "outage"}:
@@ -78,6 +82,7 @@ class BackendConfig:
             calendar_mode=calendar_mode,
             messaging_mode=messaging_mode,
             resume_storage_backend=resume_storage_backend,
+            auth_bearer_token=auth_bearer_token,
         )
 
     @property

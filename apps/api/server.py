@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hmac
+import os
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -63,7 +65,8 @@ def create_demo_server(
         raise ConfigurationError("fixture server requires APP_ENV=local-fixture")
     store = create_store(config, db_path)
     service = RequirementService(store)
-    seed_retail_job(service)
+    if config.app_env == "local-fixture":
+        seed_retail_job(service)
     applications = ApplicationService(store, service)
     scheduling = SchedulingService(store, applications, calendar_mode=config.calendar_mode)
 
@@ -149,6 +152,13 @@ def create_demo_server(
             else:
                 self._error(400, "INVALID_REQUEST", str(error))
 
+        def _require_production_auth(self, path: str) -> None:
+            if config.app_env == "local-fixture" or not path.startswith("/api/"):
+                return
+            expected = f"Bearer {os.environ.get('RECRUITING_AUTH_BEARER_TOKEN', '')}"
+            if not hmac.compare_digest(self.headers.get("Authorization", ""), expected):
+                raise RequestError(401, "AUTH_REQUIRED", "authenticated recruiter required")
+
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
             parsed = urlparse(self.path)
             path = parsed.path.rstrip("/") or "/"
@@ -178,6 +188,21 @@ def create_demo_server(
                         health["instanceToken"] = instance_token
                     self._json(200, health)
                     return
+
+                if path == "/ready":
+                    ready = True
+                    if config.backend == "supabase":
+                        try:
+                            service.list_jobs()
+                        except Exception:  # noqa: BLE001 - readiness must fail closed
+                            ready = False
+                    self._json(
+                        200 if ready else 503,
+                        {"status": "ready" if ready else "not_ready", "backend": config.backend},
+                    )
+                    return
+
+                self._require_production_auth(path)
 
                 if path == "/api/recruiter/jobs":
                     self._json(
@@ -363,6 +388,7 @@ def create_demo_server(
         def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
             path = urlparse(self.path).path.rstrip("/") or "/"
             try:
+                self._require_production_auth(path)
                 candidate_application_suffix = "/applications"
                 candidate_prefix = "/api/apply/"
                 if path.startswith(candidate_prefix) and path.endswith(candidate_application_suffix):
@@ -514,7 +540,9 @@ def create_demo_server(
 
         def do_PUT(self) -> None:  # noqa: N802 - stdlib handler API
             try:
-                self._replace_criteria(urlparse(self.path).path.rstrip("/") or "/")
+                path = urlparse(self.path).path.rstrip("/") or "/"
+                self._require_production_auth(path)
+                self._replace_criteria(path)
             except Exception as error:  # noqa: BLE001 - convert all client errors to JSON
                 self._handle_error(error)
 

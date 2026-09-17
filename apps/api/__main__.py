@@ -58,7 +58,9 @@ def main() -> None:
         pass
     finally:
         server.server_close()
-        server.demo_store.close()  # type: ignore[attr-defined]
+        close = getattr(server.demo_store, "close", None)  # type: ignore[attr-defined]
+        if close is not None:
+            close()
 
 
 if __name__ == "__main__":
