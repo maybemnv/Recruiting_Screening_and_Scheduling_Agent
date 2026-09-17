@@ -54,6 +54,7 @@ def create_demo_server(
     port: int = 0,
     backend_config: BackendConfig | None = None,
     instance_token: str | None = None,
+    host: str = "127.0.0.1",
 ) -> ThreadingHTTPServer:
     """Create a seeded local server with no external provider dependencies."""
 
@@ -520,6 +521,6 @@ def create_demo_server(
         def log_message(self, format: str, *args: object) -> None:
             return
 
-    server = ThreadingHTTPServer(("127.0.0.1", port), DemoHandler)
+    server = ThreadingHTTPServer((host, port), DemoHandler)
     server.demo_store = store  # type: ignore[attr-defined]
     return server

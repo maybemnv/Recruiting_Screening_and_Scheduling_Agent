@@ -5,6 +5,16 @@ from urllib.request import urlopen
 from apps.api.server import create_demo_server
 
 
+def test_demo_server_can_bind_to_a_container_interface(tmp_path):
+    server = create_demo_server(tmp_path / "demo.sqlite3", host="0.0.0.0")
+
+    try:
+        assert server.server_address[0] == "0.0.0.0"
+    finally:
+        server.server_close()
+        server.demo_store.close()
+
+
 def test_local_api_exposes_recruiter_job_and_candidate_preview(tmp_path):
     server = create_demo_server(tmp_path / "demo.sqlite3")
     thread = threading.Thread(target=server.serve_forever, daemon=True)

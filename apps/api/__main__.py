@@ -32,6 +32,7 @@ def prepare_demo_database(db_path: str | Path, *, reset: bool = False) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the recruiting demo API")
     parser.add_argument("--db", default=None)
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8104)
     parser.add_argument("--instance-token", default=None)
     parser.add_argument(
@@ -44,8 +45,13 @@ def main() -> None:
     if args.reset and args.db is None:
         parser.error("--reset requires an explicit --db .local/*.sqlite3 path")
     db_path = prepare_demo_database(args.db or ".local/demo.sqlite3", reset=args.reset)
-    server = create_demo_server(db_path, port=args.port, instance_token=args.instance_token)
-    print(f"Recruiting demo API listening on http://127.0.0.1:{args.port}")
+    server = create_demo_server(
+        db_path,
+        host=args.host,
+        port=args.port,
+        instance_token=args.instance_token,
+    )
+    print(f"Recruiting demo API listening on http://{args.host}:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
