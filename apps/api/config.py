@@ -14,6 +14,7 @@ class ConfigurationError(ValueError):
 class BackendConfig:
     """Server-side storage settings; secrets are intentionally excluded from repr."""
 
+    app_env: str = "production"
     backend: str = "sqlite"
     sqlite_path: str = ".local/demo.sqlite3"
     supabase_url: str | None = None
@@ -23,6 +24,11 @@ class BackendConfig:
 
     @classmethod
     def from_environment(cls) -> "BackendConfig":
+        app_env = os.getenv("APP_ENV", "production").strip().lower()
+        if app_env not in {"local-fixture", "staging", "production"}:
+            raise ConfigurationError(
+                "APP_ENV must be local-fixture, staging, or production"
+            )
         backend = os.getenv("RECRUITING_STORE_BACKEND", "sqlite").strip().lower()
         if backend not in {"sqlite", "supabase"}:
             raise ConfigurationError(
@@ -51,8 +57,14 @@ class BackendConfig:
             raise ConfigurationError("RECRUITING_DEMO_CALENDAR_MODE must be 'fixture' or 'outage'")
         if messaging_mode not in {"fixture", "outage"}:
             raise ConfigurationError("RECRUITING_DEMO_MESSAGING_MODE must be 'fixture' or 'outage'")
+        if app_env != "local-fixture":
+            if backend == "sqlite":
+                raise ConfigurationError("SQLite fixture backend requires APP_ENV=local-fixture")
+            if calendar_mode in {"fixture", "outage"} or messaging_mode in {"fixture", "outage"}:
+                raise ConfigurationError("fixture provider modes require APP_ENV=local-fixture")
 
         return cls(
+            app_env=app_env,
             backend=backend,
             sqlite_path=os.getenv("RECRUITING_SQLITE_PATH", ".local/demo.sqlite3"),
             supabase_url=url,
@@ -70,6 +82,7 @@ class BackendConfig:
     def __repr__(self) -> str:
         return (
             "BackendConfig("
+            f"app_env={self.app_env!r}, "
             f"backend={self.backend!r}, "
             f"sqlite_path={self.sqlite_path!r}, "
             f"supabase_url={self.supabase_url!r}, "

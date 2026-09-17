@@ -36,3 +36,11 @@ def test_supabase_backend_normalizes_url_and_never_exposes_key(monkeypatch):
     assert config.rest_url == "https://demo.supabase.co/rest/v1"
     assert config.supabase_service_role_key == "server-secret"
     assert "server-secret" not in repr(config)
+
+
+def test_fixture_backend_is_rejected_outside_local_fixture(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("RECRUITING_STORE_BACKEND", "sqlite")
+
+    with pytest.raises(ConfigurationError, match="local-fixture"):
+        BackendConfig.from_environment()

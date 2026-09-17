@@ -14,7 +14,7 @@ if (-not (Test-Path -LiteralPath $localDirectory)) {
 }
 
 $safeRoot = $Root.Replace("'", "''")
-$command = "`$Host.UI.RawUI.WindowTitle = 'Recruiting Screening and Scheduling'; Set-Location -LiteralPath '$safeRoot'; uv run python -m apps.api --db .local/demo.sqlite3 --reset --port 8104"
+$command = "`$Host.UI.RawUI.WindowTitle = 'Recruiting Screening and Scheduling'; Set-Location -LiteralPath '$safeRoot'; `$env:APP_ENV = 'local-fixture'; uv run python -m apps.api --db .local/demo.sqlite3 --reset --port 8104"
 Start-Process -FilePath "powershell.exe" -ArgumentList @(
     "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $command
 )

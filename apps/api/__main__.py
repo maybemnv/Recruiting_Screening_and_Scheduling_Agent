@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .config import BackendConfig, ConfigurationError
 from .server import create_demo_server
 
 
@@ -14,6 +15,9 @@ def prepare_demo_database(db_path: str | Path, *, reset: bool = False) -> Path:
     selected = Path(db_path).resolve()
     if not reset:
         return selected
+
+    if BackendConfig.from_environment().app_env != "local-fixture":
+        raise ConfigurationError("fixture reset requires APP_ENV=local-fixture")
 
     fixture_root = (Path.cwd() / ".local").resolve()
     if selected.suffix != ".sqlite3" or selected.parent != fixture_root:

@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .applications import ApplicationError, ApplicationService
-from .config import BackendConfig
+from .config import BackendConfig, ConfigurationError
 from .requirements import ImmutableVersionError, RequirementError, RequirementService
 from .retail_fixture import seed_retail_job
 from .scheduling import SchedulingService
@@ -58,6 +58,8 @@ def create_demo_server(
     """Create a seeded local server with no external provider dependencies."""
 
     config = backend_config or BackendConfig.from_environment()
+    if config.app_env != "local-fixture":
+        raise ConfigurationError("fixture server requires APP_ENV=local-fixture")
     store = create_store(config, db_path)
     service = RequirementService(store)
     seed_retail_job(service)
