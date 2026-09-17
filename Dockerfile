@@ -10,6 +10,7 @@ RUN python -m pip install --no-cache-dir --requirement requirements.txt
 
 COPY apps ./apps
 COPY web ./web
+COPY fixtures ./fixtures
 
 EXPOSE 8104
 
