@@ -1,0 +1,8 @@
+.git
+.local
+.pytest_cache
+.pytest-*
+__pycache__
+web/node_modules
+web/playwright-report
+web/test-results

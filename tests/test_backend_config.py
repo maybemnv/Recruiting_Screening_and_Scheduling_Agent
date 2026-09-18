@@ -1,6 +1,21 @@
+from pathlib import Path
+
 import pytest
 
 from apps.api.config import BackendConfig, ConfigurationError
+
+
+def test_fixture_launch_docs_select_local_environment():
+    root = Path(__file__).parents[1]
+    for path in (
+        root / "README.md",
+        root / "docs" / "RUNBOOK.md",
+        root / "docs" / "DEMO_SCRIPT.md",
+        root / "docs" / "deployment.md",
+        root / "docs" / "superpowers" / "plans" / "001-demo-showcase-ready.md",
+    ):
+        content = path.read_text(encoding="utf-8")
+        assert '$env:APP_ENV = "local-fixture"' in content
 
 
 def test_fixture_backend_is_default_without_credentials(monkeypatch):
@@ -36,3 +51,23 @@ def test_supabase_backend_normalizes_url_and_never_exposes_key(monkeypatch):
     assert config.rest_url == "https://demo.supabase.co/rest/v1"
     assert config.supabase_service_role_key == "server-secret"
     assert "server-secret" not in repr(config)
+
+
+def test_fixture_backend_is_rejected_outside_local_fixture(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("RECRUITING_STORE_BACKEND", "sqlite")
+
+    with pytest.raises(ConfigurationError, match="local-fixture"):
+        BackendConfig.from_environment()
+
+
+def test_production_requires_server_side_auth_token(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("RECRUITING_STORE_BACKEND", "supabase")
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "server-secret")
+    monkeypatch.setenv("RECRUITING_RESUME_STORAGE", "s3")
+    monkeypatch.delenv("RECRUITING_AUTH_BEARER_TOKEN", raising=False)
+
+    with pytest.raises(ConfigurationError, match="RECRUITING_AUTH_BEARER_TOKEN"):
+        BackendConfig.from_environment()

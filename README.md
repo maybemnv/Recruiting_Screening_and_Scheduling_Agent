@@ -38,6 +38,7 @@ The launcher creates the disposable `.local/demo.sqlite3`, resets the fixture, a
 For the direct command:
 
 ```powershell
+$env:APP_ENV = "local-fixture"
 uv run python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
 

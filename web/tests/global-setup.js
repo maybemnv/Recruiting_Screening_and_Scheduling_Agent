@@ -8,7 +8,7 @@ module.exports = async () => {
   const server = spawn(
     "python",
     ["-m", "apps.api", "--db", ".local/e2e.sqlite3", "--reset", "--port", "8104", "--instance-token", instanceToken],
-    { cwd: projectRoot, stdio: "ignore", windowsHide: true },
+    { cwd: projectRoot, env: { ...process.env, APP_ENV: "local-fixture" }, stdio: "ignore", windowsHide: true },
   );
 
   const deadline = Date.now() + 15_000;

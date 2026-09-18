@@ -5,6 +5,7 @@
 From the repository root, use Python and the dependency-free local server:
 
 ```powershell
+$env:APP_ENV = "local-fixture"
 python -m pytest -q --basetemp .pytest-temp
 python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
@@ -39,6 +40,7 @@ seed. Expected `/health` fields include `fixtureReady: true` and
 
    ```powershell
    $env:RECRUITING_DEMO_CALENDAR_MODE = "outage"
+   $env:APP_ENV = "local-fixture"
    python -m apps.api --db .local/demo-outage.sqlite3 --reset --port 8104
    ```
 

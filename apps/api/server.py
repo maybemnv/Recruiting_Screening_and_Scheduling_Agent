@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import hmac
+import os
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .applications import ApplicationError, ApplicationService
-from .config import BackendConfig
+from .config import BackendConfig, ConfigurationError
 from .requirements import ImmutableVersionError, RequirementError, RequirementService
 from .retail_fixture import seed_retail_job
 from .scheduling import SchedulingService
@@ -54,13 +56,17 @@ def create_demo_server(
     port: int = 0,
     backend_config: BackendConfig | None = None,
     instance_token: str | None = None,
+    host: str = "127.0.0.1",
 ) -> ThreadingHTTPServer:
     """Create a seeded local server with no external provider dependencies."""
 
     config = backend_config or BackendConfig.from_environment()
+    if config.app_env != "local-fixture":
+        raise ConfigurationError("fixture server requires APP_ENV=local-fixture")
     store = create_store(config, db_path)
     service = RequirementService(store)
-    seed_retail_job(service)
+    if config.app_env == "local-fixture":
+        seed_retail_job(service)
     applications = ApplicationService(store, service)
     scheduling = SchedulingService(store, applications, calendar_mode=config.calendar_mode)
 
@@ -146,6 +152,13 @@ def create_demo_server(
             else:
                 self._error(400, "INVALID_REQUEST", str(error))
 
+        def _require_production_auth(self, path: str) -> None:
+            if config.app_env == "local-fixture" or not path.startswith("/api/"):
+                return
+            expected = f"Bearer {os.environ.get('RECRUITING_AUTH_BEARER_TOKEN', '')}"
+            if not hmac.compare_digest(self.headers.get("Authorization", ""), expected):
+                raise RequestError(401, "AUTH_REQUIRED", "authenticated recruiter required")
+
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
             parsed = urlparse(self.path)
             path = parsed.path.rstrip("/") or "/"
@@ -175,6 +188,21 @@ def create_demo_server(
                         health["instanceToken"] = instance_token
                     self._json(200, health)
                     return
+
+                if path == "/ready":
+                    ready = True
+                    if config.backend == "supabase":
+                        try:
+                            service.list_jobs()
+                        except Exception:  # noqa: BLE001 - readiness must fail closed
+                            ready = False
+                    self._json(
+                        200 if ready else 503,
+                        {"status": "ready" if ready else "not_ready", "backend": config.backend},
+                    )
+                    return
+
+                self._require_production_auth(path)
 
                 if path == "/api/recruiter/jobs":
                     self._json(
@@ -360,6 +388,7 @@ def create_demo_server(
         def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
             path = urlparse(self.path).path.rstrip("/") or "/"
             try:
+                self._require_production_auth(path)
                 candidate_application_suffix = "/applications"
                 candidate_prefix = "/api/apply/"
                 if path.startswith(candidate_prefix) and path.endswith(candidate_application_suffix):
@@ -511,13 +540,15 @@ def create_demo_server(
 
         def do_PUT(self) -> None:  # noqa: N802 - stdlib handler API
             try:
-                self._replace_criteria(urlparse(self.path).path.rstrip("/") or "/")
+                path = urlparse(self.path).path.rstrip("/") or "/"
+                self._require_production_auth(path)
+                self._replace_criteria(path)
             except Exception as error:  # noqa: BLE001 - convert all client errors to JSON
                 self._handle_error(error)
 
         def log_message(self, format: str, *args: object) -> None:
             return
 
-    server = ThreadingHTTPServer(("127.0.0.1", port), DemoHandler)
+    server = ThreadingHTTPServer((host, port), DemoHandler)
     server.demo_store = store  # type: ignore[attr-defined]
     return server

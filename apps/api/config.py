@@ -14,15 +14,23 @@ class ConfigurationError(ValueError):
 class BackendConfig:
     """Server-side storage settings; secrets are intentionally excluded from repr."""
 
+    app_env: str = "production"
     backend: str = "sqlite"
     sqlite_path: str = ".local/demo.sqlite3"
     supabase_url: str | None = None
     supabase_service_role_key: str | None = field(default=None, repr=False)
     calendar_mode: str = "fixture"
     messaging_mode: str = "fixture"
+    resume_storage_backend: str = "local"
+    auth_bearer_token: str | None = field(default=None, repr=False)
 
     @classmethod
     def from_environment(cls) -> "BackendConfig":
+        app_env = os.getenv("APP_ENV", "production").strip().lower()
+        if app_env not in {"local-fixture", "staging", "production"}:
+            raise ConfigurationError(
+                "APP_ENV must be local-fixture, staging, or production"
+            )
         backend = os.getenv("RECRUITING_STORE_BACKEND", "sqlite").strip().lower()
         if backend not in {"sqlite", "supabase"}:
             raise ConfigurationError(
@@ -47,18 +55,34 @@ class BackendConfig:
 
         calendar_mode = os.getenv("RECRUITING_DEMO_CALENDAR_MODE", "fixture").strip().lower()
         messaging_mode = os.getenv("RECRUITING_DEMO_MESSAGING_MODE", "fixture").strip().lower()
+        resume_storage_backend = os.getenv("RECRUITING_RESUME_STORAGE", "local").strip().lower()
+        auth_bearer_token = os.getenv("RECRUITING_AUTH_BEARER_TOKEN", "").strip() or None
+        if resume_storage_backend not in {"local", "s3"}:
+            raise ConfigurationError("RECRUITING_RESUME_STORAGE must be 'local' or 's3'")
+        if app_env != "local-fixture" and auth_bearer_token is None:
+            raise ConfigurationError("RECRUITING_AUTH_BEARER_TOKEN is required outside APP_ENV=local-fixture")
         if calendar_mode not in {"fixture", "outage"}:
             raise ConfigurationError("RECRUITING_DEMO_CALENDAR_MODE must be 'fixture' or 'outage'")
         if messaging_mode not in {"fixture", "outage"}:
             raise ConfigurationError("RECRUITING_DEMO_MESSAGING_MODE must be 'fixture' or 'outage'")
+        if app_env != "local-fixture":
+            if backend == "sqlite":
+                raise ConfigurationError("SQLite fixture backend requires APP_ENV=local-fixture")
+            if calendar_mode in {"fixture", "outage"} or messaging_mode in {"fixture", "outage"}:
+                raise ConfigurationError("fixture provider modes require APP_ENV=local-fixture")
+            if resume_storage_backend != "s3":
+                raise ConfigurationError("RECRUITING_RESUME_STORAGE=s3 is required outside APP_ENV=local-fixture")
 
         return cls(
+            app_env=app_env,
             backend=backend,
             sqlite_path=os.getenv("RECRUITING_SQLITE_PATH", ".local/demo.sqlite3"),
             supabase_url=url,
             supabase_service_role_key=service_key,
             calendar_mode=calendar_mode,
             messaging_mode=messaging_mode,
+            resume_storage_backend=resume_storage_backend,
+            auth_bearer_token=auth_bearer_token,
         )
 
     @property
@@ -70,10 +94,12 @@ class BackendConfig:
     def __repr__(self) -> str:
         return (
             "BackendConfig("
+            f"app_env={self.app_env!r}, "
             f"backend={self.backend!r}, "
             f"sqlite_path={self.sqlite_path!r}, "
             f"supabase_url={self.supabase_url!r}, "
             f"calendar_mode={self.calendar_mode!r}, "
             f"messaging_mode={self.messaging_mode!r}, "
+            f"resume_storage_backend={self.resume_storage_backend!r}, "
             "supabase_service_role_key='[REDACTED]')"
         )

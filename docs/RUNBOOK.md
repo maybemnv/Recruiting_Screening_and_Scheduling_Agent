@@ -3,6 +3,7 @@
 ## Health and startup
 
 ```powershell
+$env:APP_ENV = "local-fixture"
 python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 Invoke-RestMethod http://127.0.0.1:8104/health
 ```
