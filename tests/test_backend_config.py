@@ -1,6 +1,21 @@
+from pathlib import Path
+
 import pytest
 
 from apps.api.config import BackendConfig, ConfigurationError
+
+
+def test_fixture_launch_docs_select_local_environment():
+    root = Path(__file__).parents[1]
+    for path in (
+        root / "README.md",
+        root / "docs" / "RUNBOOK.md",
+        root / "docs" / "DEMO_SCRIPT.md",
+        root / "docs" / "deployment.md",
+        root / "docs" / "superpowers" / "plans" / "001-demo-showcase-ready.md",
+    ):
+        content = path.read_text(encoding="utf-8")
+        assert '$env:APP_ENV = "local-fixture"' in content
 
 
 def test_fixture_backend_is_default_without_credentials(monkeypatch):

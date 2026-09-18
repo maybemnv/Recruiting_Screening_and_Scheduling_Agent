@@ -34,7 +34,7 @@ The fixture backend already creates evidence, screening outcomes, schedule/resch
 |---|---|---|
 | Branch | `git switch -c feat/demo-showcase-ready` | branch created |
 | Focused/full API tests | `python -m pytest -q --basetemp .pytest-temp` | all tests pass |
-| Fixture launch | `python -m apps.api --db .local/demo.sqlite3 --port 8104` | server announces `8104` |
+| Fixture launch | `$env:APP_ENV = "local-fixture"; python -m apps.api --db .local/demo.sqlite3 --port 8104` | server announces `8104` |
 | Health | `Invoke-RestMethod http://127.0.0.1:8104/health` | fixture SQLite-ready response |
 | Browser install | `cd web; npm ci; npx playwright install chromium` | dependencies and browser installed |
 | Browser suite | `cd web; npm run e2e` | desktop, mobile, keyboard tests pass |
@@ -118,7 +118,7 @@ The executor must add the minimal committed browser-test tooling required by thi
 
 ## Done criteria
 
-- [ ] `python -m apps.api --db .local/demo.sqlite3 --port 8104` and `/health` establish fixture-ready local launch.
+- [ ] `$env:APP_ENV = "local-fixture"; python -m apps.api --db .local/demo.sqlite3 --port 8104` and `/health` establish fixture-ready local launch.
 - [ ] Reset is repeatable, limited to explicitly selected local fixture SQLite data, and verified by tests.
 - [ ] Browser UI completes candidate application, screening, handoff/exception visibility, slot confirmation/rescheduling, recruiter evidence, final disposition with reason, and funnel analytics.
 - [ ] The server—not client request fields—selects the recorded fixture reviewer identity.

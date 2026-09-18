@@ -21,6 +21,7 @@ verified against a real project before switching the demo backend.
 ## Local fixture setup
 
 ```powershell
+$env:APP_ENV = "local-fixture"
 python -m pytest -q --basetemp .pytest-temp
 python -m apps.api --db .local/demo.sqlite3 --reset --port 8104
 ```
